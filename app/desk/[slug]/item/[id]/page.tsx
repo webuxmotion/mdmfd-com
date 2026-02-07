@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, use, useEffect, ReactNode } from 'react';
+import { useState, use, useEffect, useCallback, useRef, ReactNode } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import Sidebar from '../../../../components/Sidebar';
+import MarkdownEditor from '../../../../components/MarkdownEditor';
+import UserProfileButton from '../../../../components/UserProfileButton';
 import { useDesks } from '../../../../context/DesksContext';
 import { DeskItem } from '../../../../data/desks';
 
@@ -84,7 +85,6 @@ const bgColors: Record<string, string> = {
 
 export default function ItemPage({ params }: { params: Promise<{ slug: string; id: string }> }) {
   const { slug, id } = use(params);
-  const router = useRouter();
   const { getDeskBySlug, getItem, updateItem } = useDesks();
 
   const desk = getDeskBySlug(slug);
@@ -94,7 +94,13 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     title: '',
     link: '',
     description: '',
+    readme: '',
+    cardViewType: 'title' as 'title' | 'image' | 'emoji',
+    emoji: '',
   });
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showCardViewMenu, setShowCardViewMenu] = useState(false);
+  const cardViewMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (item) {
@@ -102,6 +108,9 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
         title: item.title,
         link: item.link,
         description: item.description,
+        readme: item.readme || '',
+        cardViewType: item.cardViewType || 'title',
+        emoji: item.emoji || '',
       });
     }
   }, [item]);
@@ -120,11 +129,51 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     );
   }
 
+  const saveItem = useCallback(() => {
+    updateItem(desk.id, id, {
+      title: formData.title,
+      link: formData.link,
+      description: formData.description,
+      readme: formData.readme,
+      cardViewType: formData.cardViewType,
+      emoji: formData.emoji,
+    });
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 2000);
+  }, [desk.id, id, formData, updateItem]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateItem(desk.id, id, formData);
-    router.push(`/desk/${slug}`);
+    saveItem();
   };
+
+  // Keyboard shortcut: Cmd+S or Ctrl+S to save
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        saveItem();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [saveItem]);
+
+  // Close card view menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardViewMenuRef.current && !cardViewMenuRef.current.contains(e.target as Node)) {
+        setShowCardViewMenu(false);
+      }
+    };
+
+    if (showCardViewMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCardViewMenu]);
 
   return (
     <div className="flex min-h-screen">
@@ -132,14 +181,19 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
 
       <div className="flex-1 p-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">{formData.title}</h1>
-          <div className="w-10 h-10 rounded-full bg-[#ffa000] flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-            </svg>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <Link
+              href={`/desk/${slug}`}
+              className="text-[#ffa000] hover:underline text-xl font-bold"
+            >
+              {desk.label}
+            </Link>
+            <span className="text-gray-800 text-xl font-bold"> -&gt; {formData.title}</span>
           </div>
+          <UserProfileButton />
         </div>
+
 
         {/* Item tabs */}
         <div className="flex items-center gap-2 mb-8">
@@ -156,11 +210,17 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
             <Link
               key={i.id}
               href={`/desk/${slug}/item/${i.id}`}
-              className={`w-12 h-12 rounded-lg flex items-center justify-center transition-opacity ${bgColors[i.type] || bgColors.custom} ${
+              className={`w-12 h-12 rounded-lg flex items-center justify-center transition-opacity overflow-hidden ${bgColors[i.type] || bgColors.custom} ${
                 item.id === i.id ? 'opacity-100 ring-2 ring-[#ffa000]' : 'opacity-70 hover:opacity-100'
               }`}
             >
-              {typeIcons[i.type] || typeIcons.custom}
+              {i.cardViewType === 'emoji' && i.emoji ? (
+                <span className="text-2xl">{i.emoji}</span>
+              ) : i.cardViewType === 'image' && i.image ? (
+                <img src={i.image} alt={i.title} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white text-[10px] font-medium text-center px-1 line-clamp-2">{i.title || 'Untitled'}</span>
+              )}
             </Link>
           ))}
 
@@ -175,81 +235,151 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="border-2 border-[#ffa000] rounded-2xl p-8 max-w-3xl">
-          <div className="flex gap-8">
-            <div className="flex-1 space-y-6">
-              <div className="flex items-center gap-4">
-                <label className="w-24 text-gray-600 text-right">Title</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000]"
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="mb-4">
+          <div className="flex items-center gap-4">
+            {/* Card View Type Selector */}
+            <div className="relative" ref={cardViewMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowCardViewMenu(!showCardViewMenu)}
+                className={`w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 ${bgColors[item.type] || bgColors.custom} hover:opacity-90 transition-opacity cursor-pointer`}
+                title="Change card view type"
+              >
+                {formData.cardViewType === 'emoji' && formData.emoji ? (
+                  <span className="text-3xl">{formData.emoji}</span>
+                ) : formData.cardViewType === 'image' && item.image ? (
+                  <img src={item.image} alt="" className="w-full h-full object-cover rounded-lg" />
+                ) : (
+                  <span className="text-white text-xs font-medium text-center px-1 line-clamp-2">{formData.title || 'Title'}</span>
+                )}
+              </button>
 
-              <div className="flex items-center gap-4">
-                <label className="w-24 text-gray-600 text-right">Link</label>
-                <div className="flex-1 flex items-center gap-2">
-                  <input
-                    type="url"
-                    value={formData.link}
-                    onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000]"
-                  />
+              {showCardViewMenu && (
+                <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]">
                   <button
                     type="button"
-                    className="p-2 text-gray-400 hover:text-[#ffa000] transition-colors"
-                    onClick={() => window.open(formData.link, '_blank')}
+                    onClick={() => {
+                      setFormData({ ...formData, cardViewType: 'title' });
+                      setShowCardViewMenu(false);
+                    }}
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 ${formData.cardViewType === 'title' ? 'text-[#ffa000] font-medium' : 'text-gray-700'}`}
                   >
-                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
-                      <path d="M10.586 6.343a2 2 0 0 1 2.828 0l4.243 4.243a2 2 0 0 1 0 2.828l-4.243 4.243a2 2 0 0 1-2.828 0l-4.243-4.243a2 2 0 0 1 0-2.828l4.243-4.243z" />
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                      <path d="M5 4v3h5.5v12h3V7H19V4H5z" />
                     </svg>
+                    Title
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...formData, cardViewType: 'image' });
+                      setShowCardViewMenu(false);
+                    }}
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 ${formData.cardViewType === 'image' ? 'text-[#ffa000] font-medium' : 'text-gray-700'}`}
+                  >
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                      <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                    </svg>
+                    Image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...formData, cardViewType: 'emoji' });
+                      setShowCardViewMenu(false);
+                    }}
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 ${formData.cardViewType === 'emoji' ? 'text-[#ffa000] font-medium' : 'text-gray-700'}`}
+                  >
+                    <span className="text-base">😀</span>
+                    Emoji
                   </button>
                 </div>
-              </div>
+              )}
+            </div>
 
-              <div className="flex items-start gap-4">
-                <label className="w-24 text-gray-600 text-right pt-2">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Write description here..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000] min-h-[120px] resize-none"
+            {/* Emoji input (shown when emoji type selected) */}
+            {formData.cardViewType === 'emoji' && (
+              <div className="flex items-center gap-2">
+                <label className="text-gray-600 text-sm">Emoji</label>
+                <input
+                  type="text"
+                  value={formData.emoji}
+                  onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
+                  placeholder="😀"
+                  className="w-16 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000] text-sm text-center"
+                  maxLength={2}
                 />
               </div>
+            )}
+
+            {/* Title */}
+            <div className="flex items-center gap-2 flex-1">
+              <label className="text-gray-600 text-sm">Title</label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000] text-sm"
+              />
             </div>
 
-            {/* Image section */}
-            <div className="flex flex-col items-center">
-              <span className="text-gray-600 mb-2">Image</span>
-              <div className={`w-28 h-28 rounded-lg flex items-center justify-center mb-4 ${bgColors[item.type] || bgColors.custom}`}>
-                {largeIcons[item.type] || largeIcons.custom}
-              </div>
+            {/* Link */}
+            <div className="flex items-center gap-2 flex-1">
+              <label className="text-gray-600 text-sm">Link</label>
+              <input
+                type="url"
+                value={formData.link}
+                onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000] text-sm"
+              />
               <button
                 type="button"
-                className="px-6 py-1 border border-[#ffa000] text-[#ffa000] rounded-md text-sm hover:bg-[#ffa000] hover:text-white transition-colors mb-2"
+                className="p-1.5 text-gray-400 hover:text-[#ffa000] transition-colors"
+                onClick={() => window.open(formData.link, '_blank')}
               >
-                Upload
-              </button>
-              <button
-                type="button"
-                className="px-6 py-1 border border-[#ffa000] text-[#ffa000] rounded-md text-sm hover:bg-[#ffa000] hover:text-white transition-colors"
-              >
-                Proposition
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
             </div>
-          </div>
 
-          <div className="flex justify-center mt-8">
+            {/* Description */}
+            <div className="flex items-center gap-2 flex-1">
+              <label className="text-gray-600 text-sm">Desc</label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Description..."
+                className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000] text-sm"
+              />
+            </div>
+
+            {/* Save button */}
             <button
               type="submit"
-              className="px-12 py-2 bg-[#ffa000] text-white rounded-md font-medium hover:bg-[#ff8f00] transition-colors"
+              className="px-6 py-1.5 bg-[#ffa000] text-white rounded-md font-medium hover:bg-[#ff8f00] transition-colors text-sm flex-shrink-0"
             >
               Save
             </button>
+
+            {/* Success message */}
+            {showSuccess && (
+              <span className="text-green-600 text-sm font-medium flex items-center gap-1">
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                </svg>
+                Saved
+              </span>
+            )}
           </div>
         </form>
+
+        {/* Readme Editor */}
+        <MarkdownEditor
+          value={formData.readme}
+          onChange={(readme) => setFormData({ ...formData, readme })}
+        />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useState, use, ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../../../components/Sidebar';
+import UserProfileButton from '../../../../components/UserProfileButton';
 import { useDesks } from '../../../../context/DesksContext';
 import { DeskItem } from '../../../../data/desks';
 
@@ -63,6 +64,8 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
     link: 'https://',
     description: '',
     type: 'custom' as DeskItem['type'],
+    cardViewType: 'title' as 'title' | 'image' | 'emoji',
+    emoji: '',
   });
 
   if (!desk) {
@@ -89,6 +92,8 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
         title: formData.title,
         link: formData.link,
         description: formData.description,
+        cardViewType: formData.cardViewType,
+        emoji: formData.emoji,
       });
       router.push(`/desk/${slug}`);
     }
@@ -99,16 +104,23 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
       <Sidebar activeSlug={slug} />
 
       <div className="flex-1 p-8">
+        {/* Breadcrumbs */}
+        <div className="mb-6">
+          <Link
+            href={`/desk/${slug}`}
+            className="text-[#ffa000] hover:underline text-xl font-bold"
+          >
+            {desk.label}
+          </Link>
+          <span className="text-gray-800 text-xl font-bold"> -&gt; New Item</span>
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold text-gray-400">
             {formData.title || 'Add title...'}
           </h1>
-          <div className="w-10 h-10 rounded-full bg-[#ffa000] flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-            </svg>
-          </div>
+          <UserProfileButton />
         </div>
 
         {/* Item tabs */}
@@ -126,9 +138,15 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
             <Link
               key={i.id}
               href={`/desk/${slug}/item/${i.id}`}
-              className={`w-12 h-12 rounded-lg flex items-center justify-center transition-opacity ${bgColors[i.type] || bgColors.custom} opacity-70 hover:opacity-100`}
+              className={`w-12 h-12 rounded-lg flex items-center justify-center transition-opacity overflow-hidden ${bgColors[i.type] || bgColors.custom} opacity-70 hover:opacity-100`}
             >
-              {typeIcons[i.type] || typeIcons.custom}
+              {i.cardViewType === 'emoji' && i.emoji ? (
+                <span className="text-2xl">{i.emoji}</span>
+              ) : i.cardViewType === 'image' && i.image ? (
+                <img src={i.image} alt={i.title} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white text-[10px] font-medium text-center px-1 line-clamp-2">{i.title || 'Untitled'}</span>
+              )}
             </Link>
           ))}
 

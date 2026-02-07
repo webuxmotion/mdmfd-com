@@ -73,30 +73,46 @@ export default function ItemCard({ item, deskSlug, isAddCard }: ItemCardProps) {
     : `/desk/${deskSlug}/item/${item?.id}`;
 
   return (
-    <Link
-      href={href}
-      className={`relative w-[160px] h-[180px] rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105 block ${bgColors[type] || bgColors.custom}`}
+    <div
+      className={`relative w-[160px] h-[160px] rounded-lg overflow-hidden flex flex-col ${bgColors[type] || bgColors.custom}`}
     >
-      {/* Link icon */}
+      {/* External link icon */}
       {!isAddCard && item?.link && (
-        <div className="absolute top-2 right-2">
+        <a
+          href={item.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute top-2 right-2 hover:opacity-80 transition-opacity z-10"
+          onClick={(e) => e.stopPropagation()}
+        >
           <svg viewBox="0 0 24 24" className="w-5 h-5 text-white/70 fill-current">
-            <path d="M10.586 6.343a2 2 0 0 1 2.828 0l4.243 4.243a2 2 0 0 1 0 2.828l-4.243 4.243a2 2 0 0 1-2.828 0l-4.243-4.243a2 2 0 0 1 0-2.828l4.243-4.243zm1.414 1.414L7.757 12l4.243 4.243L16.243 12 12 7.757z" />
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </div>
+        </a>
       )}
 
-      {/* Icon */}
-      <div className="flex items-center justify-center h-[130px]">
-        {typeIcons[type] || typeIcons.custom}
+      {/* Card Content based on cardViewType */}
+      <div className="flex items-center justify-center flex-1 p-3">
+        {isAddCard ? (
+          typeIcons.add
+        ) : item?.cardViewType === 'emoji' && item?.emoji ? (
+          <span className="text-5xl">{item.emoji}</span>
+        ) : item?.cardViewType === 'image' && item?.image ? (
+          <img src={item.image} alt={item.title} className="w-full h-full object-cover absolute inset-0" />
+        ) : (
+          <span className="text-white font-semibold text-center text-sm leading-tight line-clamp-4">
+            {item?.title || 'Untitled'}
+          </span>
+        )}
       </div>
 
       {/* Button */}
-      <div
-        className={`w-full py-2 text-white font-medium text-sm text-center ${buttonColors[type] || buttonColors.custom} hover:opacity-90 transition-opacity`}
+      <Link
+        href={href}
+        className={`block w-full py-2 text-white font-medium text-sm text-center cursor-pointer ${buttonColors[type] || buttonColors.custom} hover:opacity-90 transition-opacity`}
       >
         {isAddCard ? 'Add new' : 'Open'}
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }

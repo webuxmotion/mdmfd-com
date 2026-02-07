@@ -5,6 +5,9 @@ export interface DeskItem {
   link: string;
   description: string;
   image?: string;
+  readme?: string;
+  cardViewType?: 'title' | 'image' | 'emoji';
+  emoji?: string;
 }
 
 export interface Desk {
