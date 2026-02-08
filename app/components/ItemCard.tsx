@@ -8,7 +8,9 @@ import { useEncryption } from '../context/EncryptionContext';
 interface ItemCardProps {
   item?: DeskItem;
   deskSlug: string;
+  deskId?: string;
   isAddCard?: boolean;
+  isDragOverlay?: boolean;
 }
 
 const typeIcons: Record<string, ReactNode> = {
@@ -69,7 +71,7 @@ const buttonColors: Record<string, string> = {
   add: 'bg-[#ffa000]',
 };
 
-export default function ItemCard({ item, deskSlug, isAddCard }: ItemCardProps) {
+export default function ItemCard({ item, deskSlug, deskId, isAddCard, isDragOverlay }: ItemCardProps) {
   const { decryptField, isFieldEncrypted, isUnlocked } = useEncryption();
   const [decryptedTitle, setDecryptedTitle] = useState<string | null>(null);
 
@@ -101,7 +103,7 @@ export default function ItemCard({ item, deskSlug, isAddCard }: ItemCardProps) {
 
   return (
     <div
-      className={`relative w-[160px] h-[160px] rounded-lg overflow-hidden flex flex-col ${bgColors[type] || bgColors.custom}`}
+      className={`relative w-[160px] h-[160px] rounded-lg overflow-hidden flex flex-col ${bgColors[type] || bgColors.custom} ${isDragOverlay ? 'shadow-2xl scale-105' : ''}`}
     >
       {/* External link icon */}
       {!isAddCard && item?.link && (

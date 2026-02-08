@@ -3,10 +3,43 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useDroppable } from '@dnd-kit/core';
 import { useDesks } from '../context/DesksContext';
+import { Desk } from '../data/desks';
 
 interface SidebarProps {
   activeSlug?: string;
+}
+
+interface DroppableDeskLinkProps {
+  desk: Desk;
+  isActive: boolean;
+}
+
+function DroppableDeskLink({ desk, isActive }: DroppableDeskLinkProps) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: desk.id,
+  });
+
+  return (
+    <Link
+      ref={setNodeRef}
+      href={`/desk/${desk.slug}`}
+      className={`w-full block text-left px-4 py-3 text-white transition-colors relative ${
+        isActive ? 'bg-[#f57c00] font-medium' : 'hover:bg-[#ff8f00]'
+      } ${isOver ? 'bg-[#ff6f00] ring-2 ring-white ring-inset' : ''}`}
+    >
+      {isOver && (
+        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white text-lg font-bold">
+          +
+        </span>
+      )}
+      <span className={isOver ? 'ml-4' : ''}>{desk.label}</span>
+      {isActive && !isOver && (
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent border-r-[10px] border-r-white" />
+      )}
+    </Link>
+  );
 }
 
 // Mock friends data - will be replaced with real data later
@@ -86,20 +119,11 @@ export default function Sidebar({ activeSlug }: SidebarProps) {
         {viewMode === 'md' ? (
           <>
             {desks.map((desk) => (
-              <Link
+              <DroppableDeskLink
                 key={desk.id}
-                href={`/desk/${desk.slug}`}
-                className={`w-full block text-left px-4 py-3 text-white transition-colors relative ${
-                  activeSlug === desk.slug
-                    ? 'bg-[#f57c00] font-medium'
-                    : 'hover:bg-[#ff8f00]'
-                }`}
-              >
-                {desk.label}
-                {activeSlug === desk.slug && (
-                  <span className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent border-r-[10px] border-r-white" />
-                )}
-              </Link>
+                desk={desk}
+                isActive={activeSlug === desk.slug}
+              />
             ))}
 
             {/* Add New Desk */}

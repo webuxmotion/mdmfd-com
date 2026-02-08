@@ -20,6 +20,8 @@ interface DesksContextType {
   updateItem: (deskId: string, itemId: string, updates: Partial<DeskItem>) => Promise<void>;
   deleteItem: (deskId: string, itemId: string) => Promise<void>;
   getItem: (deskId: string, itemId: string) => DeskItem | undefined;
+  moveItem: (sourceDeskId: string, targetDeskId: string, itemId: string) => Promise<void>;
+  reorderItems: (deskId: string, itemIds: string[]) => Promise<void>;
   refreshDesks: () => Promise<void>;
 }
 
@@ -291,6 +293,102 @@ export function DesksProvider({ children }: { children: ReactNode }) {
     return desk?.items.find(item => item.id === itemId);
   };
 
+  const moveItem = async (sourceDeskId: string, targetDeskId: string, itemId: string) => {
+    const sourceDesk = desks.find(d => d.id === sourceDeskId);
+    const itemToMove = sourceDesk?.items.find(item => item.id === itemId);
+
+    if (!itemToMove) return;
+
+    if (isGuest) {
+      const updatedDesks = desks.map(d => {
+        if (d.id === sourceDeskId) {
+          return { ...d, items: d.items.filter(item => item.id !== itemId) };
+        }
+        if (d.id === targetDeskId) {
+          return { ...d, items: [...d.items, itemToMove] };
+        }
+        return d;
+      });
+      setDesks(updatedDesks);
+      saveGuestDesks(updatedDesks);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/desks/move-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceDeskId,
+          targetDeskId,
+          itemId,
+        }),
+      });
+
+      if (response.ok) {
+        setDesks(prev => prev.map(d => {
+          if (d.id === sourceDeskId) {
+            return { ...d, items: d.items.filter(item => item.id !== itemId) };
+          }
+          if (d.id === targetDeskId) {
+            return { ...d, items: [...d.items, itemToMove] };
+          }
+          return d;
+        }));
+      }
+    } catch (err) {
+      console.error('Error moving item:', err);
+    }
+  };
+
+  const reorderItems = async (deskId: string, itemIds: string[]) => {
+    const desk = desks.find(d => d.id === deskId);
+    if (!desk) return;
+
+    // Create new ordered items array
+    const orderedItems = itemIds
+      .map(id => desk.items.find(item => item.id === id))
+      .filter((item): item is DeskItem => item !== undefined);
+
+    if (isGuest) {
+      const updatedDesks = desks.map(d =>
+        d.id === deskId ? { ...d, items: orderedItems } : d
+      );
+      setDesks(updatedDesks);
+      saveGuestDesks(updatedDesks);
+      return;
+    }
+
+    // Optimistic update
+    setDesks(prev => prev.map(d =>
+      d.id === deskId ? { ...d, items: orderedItems } : d
+    ));
+
+    try {
+      const response = await fetch('/api/desks/reorder-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deskId,
+          itemIds,
+        }),
+      });
+
+      if (!response.ok) {
+        // Revert on failure
+        setDesks(prev => prev.map(d =>
+          d.id === deskId ? { ...d, items: desk.items } : d
+        ));
+      }
+    } catch (err) {
+      console.error('Error reordering items:', err);
+      // Revert on failure
+      setDesks(prev => prev.map(d =>
+        d.id === deskId ? { ...d, items: desk.items } : d
+      ));
+    }
+  };
+
   if (!isLoaded || isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f5f0e8]">
@@ -340,6 +438,8 @@ export function DesksProvider({ children }: { children: ReactNode }) {
         updateItem,
         deleteItem,
         getItem,
+        moveItem,
+        reorderItems,
         refreshDesks,
       }}
     >

@@ -2,8 +2,10 @@
 
 import { use, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import Sidebar from '../../components/Sidebar';
 import ItemCard from '../../components/ItemCard';
+import SortableItemCard from '../../components/SortableItemCard';
 import UserProfileButton from '../../components/UserProfileButton';
 import { useDesks } from '../../context/DesksContext';
 
@@ -87,12 +89,14 @@ export default function DeskPage({ params }: { params: Promise<{ slug: string }>
         </div>
 
         {/* Items */}
-        <div className="flex flex-wrap gap-6">
-          {desk.items.map((item) => (
-            <ItemCard key={item.id} item={item} deskSlug={slug} />
-          ))}
-          <ItemCard deskSlug={slug} isAddCard />
-        </div>
+        <SortableContext items={desk.items.map(item => item.id)} strategy={rectSortingStrategy}>
+          <div className="flex flex-wrap gap-6">
+            {desk.items.map((item) => (
+              <SortableItemCard key={item.id} item={item} deskSlug={slug} deskId={desk.id} />
+            ))}
+            <ItemCard deskSlug={slug} isAddCard />
+          </div>
+        </SortableContext>
       </main>
     </div>
   );
