@@ -1,46 +1,13 @@
 'use client';
 
-import { useState, use, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { useState, use, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../../../components/Sidebar';
 import MarkdownEditor from '../../../../components/MarkdownEditor';
 import UserProfileButton from '../../../../components/UserProfileButton';
 import { useDesks } from '../../../../context/DesksContext';
 import { useEncryption } from '../../../../context/EncryptionContext';
-import { DeskItem } from '../../../../data/desks';
-
-const typeIcons: Record<string, ReactNode> = {
-  facebook: (
-    <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
-      <path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" />
-    </svg>
-  ),
-  linkedin: (
-    <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
-      <path d="M6.94 5a2 2 0 1 1-4-.002 2 2 0 0 1 4 .002zM7 8.48H3V21h4V8.48zm6.32 0H9.34V21h3.94v-6.57c0-3.66 4.77-4 4.77 0V21H22v-7.93c0-6.17-7.06-5.94-8.72-2.91l.04-1.68z" />
-    </svg>
-  ),
-  instagram: (
-    <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
-      <path d="M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.254 1.216.598 1.772 1.153a4.908 4.908 0 0 1 1.153 1.772c.247.637.415 1.363.465 2.428.047 1.066.06 1.405.06 4.122 0 2.717-.01 3.056-.06 4.122-.05 1.065-.218 1.79-.465 2.428a4.883 4.883 0 0 1-1.153 1.772 4.915 4.915 0 0 1-1.772 1.153c-.637.247-1.363.415-2.428.465-1.066.047-1.405.06-4.122.06-2.717 0-3.056-.01-4.122-.06-1.065-.05-1.79-.218-2.428-.465a4.89 4.89 0 0 1-1.772-1.153 4.904 4.904 0 0 1-1.153-1.772c-.248-.637-.415-1.363-.465-2.428C2.013 15.056 2 14.717 2 12c0-2.717.01-3.056.06-4.122.05-1.066.217-1.79.465-2.428a4.88 4.88 0 0 1 1.153-1.772A4.897 4.897 0 0 1 5.45 2.525c.638-.248 1.362-.415 2.428-.465C8.944 2.013 9.283 2 12 2zm0 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm6.5-.25a1.25 1.25 0 0 0-2.5 0 1.25 1.25 0 0 0 2.5 0zM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" />
-    </svg>
-  ),
-  note: (
-    <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
-      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-    </svg>
-  ),
-  book: (
-    <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
-      <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z" />
-    </svg>
-  ),
-  custom: (
-    <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-    </svg>
-  ),
-};
 
 const bgColors: Record<string, string> = {
   facebook: 'bg-[#3b5998]',
@@ -53,7 +20,8 @@ const bgColors: Record<string, string> = {
 
 export default function ItemPage({ params }: { params: Promise<{ slug: string; id: string }> }) {
   const { slug, id } = use(params);
-  const { getDeskBySlug, getItem, updateItem } = useDesks();
+  const { getDeskBySlug, getItem, updateItem, deleteItem, refreshDesks } = useDesks();
+  const router = useRouter();
   const {
     isUnlocked,
     encryptField,
@@ -76,8 +44,21 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
   const [decryptError, setDecryptError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCardViewMenu, setShowCardViewMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const cardViewMenuRef = useRef<HTMLDivElement>(null);
   const [decryptedTitles, setDecryptedTitles] = useState<Record<string, string>>({});
+  const lastFetchedRef = useRef<string | null>(null);
+
+  // Fetch fresh data from server when visiting the page
+  useEffect(() => {
+    const key = `${slug}-${id}`;
+    if (lastFetchedRef.current !== key) {
+      lastFetchedRef.current = key;
+      refreshDesks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, id]);
 
   // Decrypt all item titles for tabs
   useEffect(() => {
@@ -141,6 +122,37 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     loadAndDecrypt();
   }, [item, isUnlocked, decryptField, isFieldEncrypted]);
 
+  // Keyboard shortcut: Cmd+S or Ctrl+S to save
+  useEffect(() => {
+    if (!desk || !item) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        // saveItem is not available here, so we need to dispatch a custom event
+        document.dispatchEvent(new CustomEvent('save-item'));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [desk, item]);
+
+  // Close card view menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardViewMenuRef.current && !cardViewMenuRef.current.contains(e.target as Node)) {
+        setShowCardViewMenu(false);
+      }
+    };
+
+    if (showCardViewMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCardViewMenu]);
+
   if (!desk || !item) {
     return (
       <div className="flex min-h-screen">
@@ -182,33 +194,26 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     saveItem();
   };
 
-  // Keyboard shortcut: Cmd+S or Ctrl+S to save
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        saveItem();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [formData, isUnlocked]);
-
-  // Close card view menu on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (cardViewMenuRef.current && !cardViewMenuRef.current.contains(e.target as Node)) {
-        setShowCardViewMenu(false);
-      }
-    };
-
-    if (showCardViewMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
+  const handleDelete = async () => {
+    if (!desk || !item) return;
+    setIsDeleting(true);
+    try {
+      // Navigate first, then delete to avoid re-render issues
+      router.push(`/desk/${slug}`);
+      await deleteItem(desk.id, item.id);
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
+  };
 
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showCardViewMenu]);
+  // Listen for save event from keyboard shortcut
+  useEffect(() => {
+    const handleSaveEvent = () => saveItem();
+    document.addEventListener('save-item', handleSaveEvent);
+    return () => document.removeEventListener('save-item', handleSaveEvent);
+  }, [formData, isUnlocked, encryptField, updateItem, desk, id]);
 
   return (
     <div className="flex min-h-screen">
@@ -411,6 +416,18 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
                   Save
                 </button>
 
+                {/* Delete button */}
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-1.5 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                  title="Delete item"
+                >
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                  </svg>
+                </button>
+
                 {/* Success message */}
                 {showSuccess && (
                   <span className="text-green-600 text-sm font-medium flex items-center gap-1">
@@ -431,6 +448,34 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
           </>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">Delete Item</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete &quot;{formData.title || 'this item'}&quot;? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-500 text-white rounded-md font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
