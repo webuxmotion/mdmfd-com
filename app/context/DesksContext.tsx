@@ -1,12 +1,16 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Desk, DeskItem } from '../data/desks';
+import { useSession } from 'next-auth/react';
+import { Desk, DeskItem, initialDesks } from '../data/desks';
+
+const STORAGE_KEY = 'mdmfd_guest_desks';
 
 interface DesksContextType {
   desks: Desk[];
   error: string | null;
   isLoading: boolean;
+  isGuest: boolean;
   addDesk: (desk: Omit<Desk, 'id'>) => Promise<string>;
   updateDesk: (id: string, updates: Partial<Desk>) => Promise<void>;
   deleteDesk: (id: string) => Promise<void>;
@@ -21,15 +25,49 @@ interface DesksContextType {
 
 const DesksContext = createContext<DesksContextType | undefined>(undefined);
 
+function getGuestDesks(): Desk[] {
+  if (typeof window === 'undefined') return initialDesks;
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return initialDesks;
+    }
+  }
+  return initialDesks;
+}
+
+function saveGuestDesks(desks: Desk[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(desks));
+  }
+}
+
 export function DesksProvider({ children }: { children: ReactNode }) {
+  const { status } = useSession();
   const [desks, setDesks] = useState<Desk[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const isGuest = status === 'unauthenticated';
+  const isAuthLoading = status === 'loading';
+
   const fetchDesks = useCallback(async () => {
+    if (isAuthLoading) return;
+
     setIsLoading(true);
     setError(null);
+
+    if (isGuest) {
+      const guestDesks = getGuestDesks();
+      setDesks(guestDesks);
+      setIsLoading(false);
+      setIsLoaded(true);
+      return;
+    }
+
     try {
       const response = await fetch('/api/desks');
       if (response.ok) {
@@ -46,7 +84,7 @@ export function DesksProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       setIsLoaded(true);
     }
-  }, []);
+  }, [isGuest, isAuthLoading]);
 
   useEffect(() => {
     fetchDesks();
@@ -57,6 +95,16 @@ export function DesksProvider({ children }: { children: ReactNode }) {
   };
 
   const addDesk = async (desk: Omit<Desk, 'id'>): Promise<string> => {
+    const newId = String(Date.now());
+    const newDesk = { ...desk, id: newId } as Desk;
+
+    if (isGuest) {
+      const updatedDesks = [...desks, newDesk];
+      setDesks(updatedDesks);
+      saveGuestDesks(updatedDesks);
+      return newId;
+    }
+
     try {
       const response = await fetch('/api/desks', {
         method: 'POST',
@@ -65,9 +113,9 @@ export function DesksProvider({ children }: { children: ReactNode }) {
       });
 
       if (response.ok) {
-        const newDesk = await response.json();
-        setDesks(prev => [...prev, newDesk]);
-        return newDesk.id;
+        const createdDesk = await response.json();
+        setDesks(prev => [...prev, createdDesk]);
+        return createdDesk.id;
       }
     } catch (err) {
       console.error('Error adding desk:', err);
@@ -76,6 +124,13 @@ export function DesksProvider({ children }: { children: ReactNode }) {
   };
 
   const updateDesk = async (id: string, updates: Partial<Desk>) => {
+    if (isGuest) {
+      const updatedDesks = desks.map(d => (d.id === id ? { ...d, ...updates } : d));
+      setDesks(updatedDesks);
+      saveGuestDesks(updatedDesks);
+      return;
+    }
+
     try {
       const response = await fetch(`/api/desks/${id}`, {
         method: 'PUT',
@@ -94,6 +149,13 @@ export function DesksProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteDesk = async (id: string) => {
+    if (isGuest) {
+      const updatedDesks = desks.filter(d => d.id !== id);
+      setDesks(updatedDesks);
+      saveGuestDesks(updatedDesks);
+      return;
+    }
+
     try {
       const response = await fetch(`/api/desks/${id}`, {
         method: 'DELETE',
@@ -116,6 +178,18 @@ export function DesksProvider({ children }: { children: ReactNode }) {
   };
 
   const addItem = async (deskId: string, item: Omit<DeskItem, 'id'>): Promise<string> => {
+    const newId = String(Date.now());
+    const newItem = { ...item, id: newId } as DeskItem;
+
+    if (isGuest) {
+      const updatedDesks = desks.map(d =>
+        d.id === deskId ? { ...d, items: [...d.items, newItem] } : d
+      );
+      setDesks(updatedDesks);
+      saveGuestDesks(updatedDesks);
+      return newId;
+    }
+
     try {
       const response = await fetch(`/api/desks/${deskId}/items`, {
         method: 'POST',
@@ -124,13 +198,13 @@ export function DesksProvider({ children }: { children: ReactNode }) {
       });
 
       if (response.ok) {
-        const newItem = await response.json();
+        const createdItem = await response.json();
         setDesks(prev =>
           prev.map(d =>
-            d.id === deskId ? { ...d, items: [...d.items, newItem] } : d
+            d.id === deskId ? { ...d, items: [...d.items, createdItem] } : d
           )
         );
-        return newItem.id;
+        return createdItem.id;
       }
     } catch (err) {
       console.error('Error adding item:', err);
@@ -139,6 +213,22 @@ export function DesksProvider({ children }: { children: ReactNode }) {
   };
 
   const updateItem = async (deskId: string, itemId: string, updates: Partial<DeskItem>) => {
+    if (isGuest) {
+      const updatedDesks = desks.map(d =>
+        d.id === deskId
+          ? {
+              ...d,
+              items: d.items.map(item =>
+                item.id === itemId ? { ...item, ...updates } : item
+              ),
+            }
+          : d
+      );
+      setDesks(updatedDesks);
+      saveGuestDesks(updatedDesks);
+      return;
+    }
+
     try {
       const response = await fetch(`/api/desks/${deskId}/items/${itemId}`, {
         method: 'PUT',
@@ -166,6 +256,17 @@ export function DesksProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteItem = async (deskId: string, itemId: string) => {
+    if (isGuest) {
+      const updatedDesks = desks.map(d =>
+        d.id === deskId
+          ? { ...d, items: d.items.filter(item => item.id !== itemId) }
+          : d
+      );
+      setDesks(updatedDesks);
+      saveGuestDesks(updatedDesks);
+      return;
+    }
+
     try {
       const response = await fetch(`/api/desks/${deskId}/items/${itemId}`, {
         method: 'DELETE',
@@ -190,7 +291,7 @@ export function DesksProvider({ children }: { children: ReactNode }) {
     return desk?.items.find(item => item.id === itemId);
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f5f0e8]">
         <div className="text-center">
@@ -201,7 +302,7 @@ export function DesksProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  if (error) {
+  if (error && !isGuest) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f5f0e8]">
         <div className="text-center max-w-md p-8 bg-white rounded-lg shadow-lg">
@@ -229,6 +330,7 @@ export function DesksProvider({ children }: { children: ReactNode }) {
         desks,
         error,
         isLoading,
+        isGuest,
         addDesk,
         updateDesk,
         deleteDesk,

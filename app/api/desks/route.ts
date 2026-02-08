@@ -1,36 +1,20 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { auth } from '@/auth';
 import { getDatabase } from '../../lib/mongodb';
 import { initialDesks } from '../../data/desks';
 
-async function getCurrentUserId() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth_token');
-
-  if (!token) return null;
-
-  try {
-    const session = JSON.parse(Buffer.from(token.value, 'base64').toString());
-    if (session.exp < Date.now()) return null;
-    return session.id;
-  } catch {
-    return null;
-  }
-}
-
 export async function GET() {
   try {
-    const userId = await getCurrentUserId();
+    const session = await auth();
 
-    // Guest users can't see any desks
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.json([]);
     }
 
+    const userId = session.user.id;
     const db = await getDatabase();
     const desks = await db.collection('desks').find({ userId }).toArray();
 
-    // If no desks exist for this user, initialize with default data
     if (desks.length === 0) {
       const userDesks = initialDesks.map(desk => ({ ...desk, userId }));
       await db.collection('desks').insertMany(userDesks);
@@ -46,14 +30,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const userId = await getCurrentUserId();
+    const session = await auth();
     const db = await getDatabase();
     const body = await request.json();
 
     const newDesk = {
       id: String(Date.now()),
       ...body,
-      ...(userId && { userId }),
+      ...(session?.user?.id && { userId: session.user.id }),
     };
 
     await db.collection('desks').insertOne(newDesk);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '../../../lib/mongodb';
-import { cookies } from 'next/headers';
+import bcrypt from 'bcryptjs';
+import { generateMasterKey, encryptMasterKey } from '../../../lib/encryption.server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,10 +15,9 @@ export async function POST(request: NextRequest) {
     }
 
     const client = await clientPromise;
-    const db = client.db();
+    const db = client.db('mdmfd');
     const usersCollection = db.collection('users');
 
-    // Check if user already exists
     const existingUser = await usersCollection.findOne({
       $or: [{ email }, { username }]
     });
@@ -37,12 +37,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create user (in production, hash the password!)
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Generate and encrypt master key for end-to-end encryption
+    const masterKey = generateMasterKey();
+    const encryptedMasterKey = encryptMasterKey(masterKey, password);
+
     const newUser = {
       username,
       fullName,
       email,
-      password, // TODO: Hash password in production
+      password: hashedPassword,
+      encryptedMasterKey,
       phone: '',
       avatar: '',
       link: `https://mdmfd.com/${username}`,
@@ -51,31 +57,9 @@ export async function POST(request: NextRequest) {
 
     const result = await usersCollection.insertOne(newUser);
 
-    // Create session token (simple implementation)
-    const sessionToken = Buffer.from(JSON.stringify({
-      id: result.insertedId.toString(),
-      email,
-      exp: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
-    })).toString('base64');
-
-    // Set cookie
-    const cookieStore = await cookies();
-    cookieStore.set('auth_token', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
-    });
-
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = newUser;
-
     return NextResponse.json({
-      user: {
-        id: result.insertedId.toString(),
-        ...userWithoutPassword,
-      },
+      success: true,
+      userId: result.insertedId.toString(),
     });
   } catch (error) {
     console.error('Registration error:', error);

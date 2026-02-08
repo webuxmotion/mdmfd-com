@@ -1,13 +1,18 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { SessionProvider } from 'next-auth/react';
 import { DesksProvider } from '../context/DesksContext';
-import { AuthProvider } from '../context/AuthContext';
+import { EncryptionProvider } from '../context/EncryptionContext';
 
 export default function Providers({ children }: { children: ReactNode }) {
   return (
-    <AuthProvider>
-      <DesksProvider>{children}</DesksProvider>
-    </AuthProvider>
+    <SessionProvider>
+      <EncryptionProvider>
+        <DesksProvider>
+          {children}
+        </DesksProvider>
+      </EncryptionProvider>
+    </SessionProvider>
   );
 }

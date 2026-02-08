@@ -3,21 +3,31 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../context/AuthContext';
+import { useSession, signOut } from 'next-auth/react';
+import { useEncryption } from '../context/EncryptionContext';
 
 export default function UserProfileButton() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { data: session, status } = useSession();
+  const { clearMasterKey } = useEncryption();
 
   const handleLogout = async () => {
     setIsOpen(false);
-    await logout();
+    clearMasterKey(); // Clear encryption master key
+    await signOut({ redirect: false });
     router.push('/');
+    router.refresh();
   };
 
+  if (status === 'loading') {
+    return (
+      <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+    );
+  }
+
   // If not logged in, show login button
-  if (!user) {
+  if (!session?.user) {
     return (
       <Link
         href="/login"
@@ -28,6 +38,8 @@ export default function UserProfileButton() {
     );
   }
 
+  const user = session.user;
+
   return (
     <div
       className="relative"
@@ -35,8 +47,8 @@ export default function UserProfileButton() {
       onMouseLeave={() => setIsOpen(false)}
     >
       <button className="w-10 h-10 rounded-full bg-[#ffa000] flex items-center justify-center hover:bg-[#ff8f00] transition-colors overflow-hidden">
-        {user.avatar ? (
-          <img src={user.avatar} alt={user.fullName} className="w-full h-full object-cover" />
+        {user.image ? (
+          <img src={user.image} alt={user.name || ''} className="w-full h-full object-cover" />
         ) : (
           <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />

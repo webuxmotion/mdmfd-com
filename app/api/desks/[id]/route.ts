@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import { getDatabase } from '../../../lib/mongodb';
 
 export async function GET(
@@ -7,8 +8,15 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const session = await auth();
     const db = await getDatabase();
-    const desk = await db.collection('desks').findOne({ id });
+
+    const query: { id: string; userId?: string } = { id };
+    if (session?.user?.id) {
+      query.userId = session.user.id;
+    }
+
+    const desk = await db.collection('desks').findOne(query);
 
     if (!desk) {
       return NextResponse.json({ error: 'Desk not found' }, { status: 404 });
@@ -27,11 +35,17 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+    const session = await auth();
     const db = await getDatabase();
     const body = await request.json();
 
+    const query: { id: string; userId?: string } = { id };
+    if (session?.user?.id) {
+      query.userId = session.user.id;
+    }
+
     const result = await db.collection('desks').updateOne(
-      { id },
+      query,
       { $set: body }
     );
 
@@ -39,7 +53,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Desk not found' }, { status: 404 });
     }
 
-    const updatedDesk = await db.collection('desks').findOne({ id });
+    const updatedDesk = await db.collection('desks').findOne(query);
     return NextResponse.json(updatedDesk);
   } catch (error) {
     console.error('Error updating desk:', error);
@@ -53,9 +67,15 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const session = await auth();
     const db = await getDatabase();
 
-    const result = await db.collection('desks').deleteOne({ id });
+    const query: { id: string; userId?: string } = { id };
+    if (session?.user?.id) {
+      query.userId = session.user.id;
+    }
+
+    const result = await db.collection('desks').deleteOne(query);
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: 'Desk not found' }, { status: 404 });

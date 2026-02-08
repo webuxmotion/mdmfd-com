@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { DeskItem } from '../data/desks';
+import { useEncryption } from '../context/EncryptionContext';
 
 interface ItemCardProps {
   item?: DeskItem;
@@ -67,10 +70,34 @@ const buttonColors: Record<string, string> = {
 };
 
 export default function ItemCard({ item, deskSlug, isAddCard }: ItemCardProps) {
+  const { decryptField, isFieldEncrypted, isUnlocked } = useEncryption();
+  const [decryptedTitle, setDecryptedTitle] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!item || isAddCard) return;
+
+    const decryptTitle = async () => {
+      if (isUnlocked && isFieldEncrypted(item.title)) {
+        try {
+          const decrypted = await decryptField(item.title);
+          setDecryptedTitle(decrypted);
+        } catch {
+          setDecryptedTitle(item.title);
+        }
+      } else {
+        setDecryptedTitle(item.title);
+      }
+    };
+
+    decryptTitle();
+  }, [item, isAddCard, isUnlocked, decryptField, isFieldEncrypted]);
+
   const type = isAddCard ? 'add' : (item?.type || 'custom');
   const href = isAddCard
     ? `/desk/${deskSlug}/item/new`
     : `/desk/${deskSlug}/item/${item?.id}`;
+
+  const displayTitle = decryptedTitle || item?.title || 'Untitled';
 
   return (
     <div
@@ -98,10 +125,10 @@ export default function ItemCard({ item, deskSlug, isAddCard }: ItemCardProps) {
         ) : item?.cardViewType === 'emoji' && item?.emoji ? (
           <span className="text-5xl">{item.emoji}</span>
         ) : item?.cardViewType === 'image' && item?.image ? (
-          <img src={item.image} alt={item.title} className="w-full h-full object-cover absolute inset-0" />
+          <img src={item.image} alt={displayTitle} className="w-full h-full object-cover absolute inset-0" />
         ) : (
           <span className="text-white font-semibold text-center text-sm leading-tight line-clamp-4">
-            {item?.title || 'Untitled'}
+            {isFieldEncrypted(displayTitle) ? '••••' : displayTitle}
           </span>
         )}
       </div>

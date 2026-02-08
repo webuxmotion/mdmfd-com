@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import { getDatabase } from '../../../../lib/mongodb';
 
 export async function POST(
@@ -7,8 +8,14 @@ export async function POST(
 ) {
   try {
     const { id: deskId } = await params;
+    const session = await auth();
     const db = await getDatabase();
     const body = await request.json();
+
+    const query: { id: string; userId?: string } = { id: deskId };
+    if (session?.user?.id) {
+      query.userId = session.user.id;
+    }
 
     const newItem = {
       id: String(Date.now()),
@@ -16,7 +23,7 @@ export async function POST(
     };
 
     const result = await db.collection('desks').updateOne(
-      { id: deskId },
+      query,
       { $push: { items: newItem } }
     );
 

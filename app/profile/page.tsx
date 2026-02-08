@@ -2,51 +2,73 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Sidebar from '../components/Sidebar';
 import UserProfileButton from '../components/UserProfileButton';
-import { useAuth } from '../context/AuthContext';
+
+interface UserProfile {
+  fullName: string;
+  username: string;
+  email: string;
+  phone: string;
+  avatar?: string;
+}
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isLoading, updateProfile } = useAuth();
+  const { data: session, status, update } = useSession();
   const [formData, setFormData] = useState({
     fullName: '',
     username: '',
     email: '',
     phone: '',
   });
+  const [avatar, setAvatar] = useState<string | undefined>();
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (status === 'unauthenticated') {
       router.push('/login');
     }
-  }, [user, isLoading, router]);
+  }, [status, router]);
 
   useEffect(() => {
-    if (user) {
+    if (session?.user) {
+      fetchUserProfile();
+    }
+  }, [session]);
+
+  const fetchUserProfile = async () => {
+    const response = await fetch('/api/auth/profile');
+    if (response.ok) {
+      const data = await response.json();
+      const user: UserProfile = data.user;
       setFormData({
         fullName: user.fullName || '',
         username: user.username || '',
         email: user.email || '',
         phone: user.phone || '',
       });
+      setAvatar(user.avatar);
     }
-  }, [user]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
 
-    const result = await updateProfile({
-      fullName: formData.fullName,
-      username: formData.username,
-      email: formData.email,
-      phone: formData.phone,
+    const response = await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
     });
 
-    if (result.success) {
+    if (response.ok) {
+      await update({
+        name: formData.fullName,
+        username: formData.username,
+      });
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
     }
@@ -54,7 +76,7 @@ export default function ProfilePage() {
     setIsSaving(false);
   };
 
-  if (isLoading) {
+  if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-gray-500">Loading...</div>
@@ -62,7 +84,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user) {
+  if (!session?.user) {
     return null;
   }
 
@@ -151,8 +173,8 @@ export default function ProfilePage() {
                 <div className="flex flex-col items-center">
                   <span className="text-gray-600 mb-3">Photo</span>
                   <div className="w-28 h-28 rounded-full bg-gray-100 flex items-center justify-center mb-3 overflow-hidden">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt={user.fullName} className="w-full h-full object-cover" />
+                    {avatar || session.user.image ? (
+                      <img src={avatar || session.user.image || ''} alt={formData.fullName} className="w-full h-full object-cover" />
                     ) : (
                       <svg viewBox="0 0 24 24" className="w-16 h-16 text-gray-300 fill-current">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />

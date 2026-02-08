@@ -1,36 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { auth } from '@/auth';
 import clientPromise from '../../../lib/mongodb';
-import { ObjectId } from 'mongodb';
 
-export async function PUT(request: NextRequest) {
+export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token');
+    const session = await auth();
 
-    if (!token) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       );
     }
 
-    // Decode token
-    let session;
-    try {
-      session = JSON.parse(Buffer.from(token.value, 'base64').toString());
-    } catch {
+    const client = await clientPromise;
+    const db = client.db('mdmfd');
+    const user = await db.collection('users').findOne({
+      email: session.user.email
+    });
+
+    if (!user) {
       return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
+        { error: 'User not found' },
+        { status: 404 }
       );
     }
 
-    // Check expiration
-    if (session.exp < Date.now()) {
-      cookieStore.delete('auth_token');
+    const { password: _, _id, ...userWithoutPassword } = user;
+
+    return NextResponse.json({
+      user: {
+        id: _id.toString(),
+        ...userWithoutPassword,
+      },
+    });
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch profile' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.email) {
       return NextResponse.json(
-        { error: 'Session expired' },
+        { error: 'Not authenticated' },
         { status: 401 }
       );
     }
@@ -39,13 +58,23 @@ export async function PUT(request: NextRequest) {
     const { fullName, username, email, phone } = updates;
 
     const client = await clientPromise;
-    const db = client.db();
+    const db = client.db('mdmfd');
     const usersCollection = db.collection('users');
 
-    // Check if username or email is already taken by another user
+    const currentUser = await usersCollection.findOne({
+      email: session.user.email
+    });
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
     if (username || email) {
       const existingUser = await usersCollection.findOne({
-        _id: { $ne: new ObjectId(session.id) },
+        _id: { $ne: currentUser._id },
         $or: [
           ...(username ? [{ username }] : []),
           ...(email ? [{ email }] : []),
@@ -68,7 +97,6 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Update user
     const updateData: Record<string, string> = {};
     if (fullName !== undefined) updateData.fullName = fullName;
     if (username !== undefined) {
@@ -79,22 +107,12 @@ export async function PUT(request: NextRequest) {
     if (phone !== undefined) updateData.phone = phone;
 
     await usersCollection.updateOne(
-      { _id: new ObjectId(session.id) },
+      { _id: currentUser._id },
       { $set: updateData }
     );
 
-    // Get updated user
-    const user = await usersCollection.findOne({ _id: new ObjectId(session.id) });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Return user without password
-    const { password: _, _id, ...userWithoutPassword } = user;
+    const user = await usersCollection.findOne({ _id: currentUser._id });
+    const { password: _, _id, ...userWithoutPassword } = user!;
 
     return NextResponse.json({
       user: {

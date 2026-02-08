@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import { getDatabase } from '../../../../../lib/mongodb';
 
 export async function PUT(
@@ -7,11 +8,20 @@ export async function PUT(
 ) {
   try {
     const { id: deskId, itemId } = await params;
+    const session = await auth();
     const db = await getDatabase();
     const body = await request.json();
 
+    const query: { id: string; 'items.id': string; userId?: string } = {
+      id: deskId,
+      'items.id': itemId,
+    };
+    if (session?.user?.id) {
+      query.userId = session.user.id;
+    }
+
     const result = await db.collection('desks').updateOne(
-      { id: deskId, 'items.id': itemId },
+      query,
       {
         $set: {
           'items.$.title': body.title,
@@ -41,11 +51,17 @@ export async function DELETE(
 ) {
   try {
     const { id: deskId, itemId } = await params;
+    const session = await auth();
     const db = await getDatabase();
 
+    const query: { id: string; userId?: string } = { id: deskId };
+    if (session?.user?.id) {
+      query.userId = session.user.id;
+    }
+
     const result = await db.collection('desks').updateOne(
-      { id: deskId },
-      { $pull: { items: { id: itemId } } }
+      query,
+      { $pull: { items: { id: itemId } } } as any
     );
 
     if (result.matchedCount === 0) {
