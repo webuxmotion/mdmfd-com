@@ -57,42 +57,42 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4 transition-colors">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-[#ffa000] rounded-full px-6 py-3">
+          <div className="inline-flex items-center gap-2 bg-[var(--primary)] rounded-full px-6 py-3">
             <span className="text-white font-bold text-xl">MD</span>
-            <span className="text-[#8b6914] font-bold text-xl">MFD</span>
+            <span className="text-white/70 font-bold text-xl">MFD</span>
           </div>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-          <h1 className="text-2xl font-bold text-gray-800 text-center mb-6">Sign in</h1>
+        <div className="bg-[var(--surface)] rounded-2xl shadow-lg border border-[var(--border-color)] p-8">
+          <h1 className="text-2xl font-bold text-[var(--foreground)] text-center mb-6">Sign in</h1>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-500 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-gray-600 text-sm mb-1">Email</label>
+              <label className="block text-[var(--text-muted)] text-sm mb-1">Email</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ffa000]"
+                className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)]"
                 required
               />
             </div>
 
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-gray-600 text-sm">Password</label>
-                <Link href="/forgot-password" className="text-[#ffa000] text-sm hover:underline">
+                <label className="block text-[var(--text-muted)] text-sm">Password</label>
+                <Link href="/forgot-password" className="text-[var(--primary)] text-sm hover:underline">
                   Forgot password?
                 </Link>
               </div>
@@ -100,7 +100,7 @@ export default function LoginPage() {
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ffa000]"
+                className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)]"
                 required
               />
             </div>
@@ -108,7 +108,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2 bg-[#ffa000] text-white rounded-lg font-medium hover:bg-[#ff8f00] transition-colors disabled:opacity-50"
+              className="w-full py-2 bg-[var(--primary)] text-white rounded-lg font-medium hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-50"
             >
               {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -116,10 +116,10 @@ export default function LoginPage() {
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
+              <div className="w-full border-t border-[var(--border-color)]"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-2 text-gray-500">Or continue with</span>
+              <span className="bg-[var(--surface)] px-2 text-[var(--text-muted)]">Or continue with</span>
             </div>
           </div>
 
@@ -127,7 +127,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-2 border border-[var(--border-color)] text-[var(--foreground)] rounded-lg font-medium hover:bg-[var(--surface-hover)] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -138,9 +138,9 @@ export default function LoginPage() {
             Sign in with Google
           </button>
 
-          <p className="text-center text-gray-500 text-sm mt-6">
+          <p className="text-center text-[var(--text-muted)] text-sm mt-6">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-[#ffa000] hover:underline">
+            <Link href="/register" className="text-[var(--primary)] hover:underline">
               Sign up
             </Link>
           </p>

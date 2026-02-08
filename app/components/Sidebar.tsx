@@ -1,11 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useDroppable } from '@dnd-kit/core';
 import { useDesks } from '../context/DesksContext';
 import { Desk } from '../data/desks';
+
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 500;
+const DEFAULT_WIDTH = 280;
 
 interface SidebarProps {
   activeSlug?: string;
@@ -25,18 +29,18 @@ function DroppableDeskLink({ desk, isActive }: DroppableDeskLinkProps) {
     <Link
       ref={setNodeRef}
       href={`/desk/${desk.slug}`}
-      className={`w-full block text-left px-4 py-3 text-white transition-colors relative ${
-        isActive ? 'bg-[#f57c00] font-medium' : 'hover:bg-[#ff8f00]'
-      } ${isOver ? 'bg-[#ff6f00] ring-2 ring-white ring-inset' : ''}`}
+      className={`w-full block text-left px-4 py-3 text-[var(--sidebar-text)] transition-colors relative ${
+        isActive ? 'bg-[var(--sidebar-active)] font-medium' : 'hover:bg-[var(--sidebar-hover)]'
+      } ${isOver ? 'bg-[var(--primary-dark)] ring-2 ring-[var(--primary)] ring-inset' : ''}`}
     >
       {isOver && (
-        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white text-lg font-bold">
+        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--primary)] text-lg font-bold">
           +
         </span>
       )}
       <span className={isOver ? 'ml-4' : ''}>{desk.label}</span>
       {isActive && !isOver && (
-        <span className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent border-r-[10px] border-r-white" />
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent border-r-[10px] border-r-[var(--background)]" />
       )}
     </Link>
   );
@@ -56,9 +60,57 @@ export default function Sidebar({ activeSlug }: SidebarProps) {
   const [isAddingDesk, setIsAddingDesk] = useState(false);
   const [friendSearch, setFriendSearch] = useState('');
   const [openFriendMenu, setOpenFriendMenu] = useState<string | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Load saved sidebar width from localStorage on mount (useLayoutEffect to avoid flash)
+  useLayoutEffect(() => {
+    const savedWidth = localStorage.getItem('sidebarWidth');
+    if (savedWidth) {
+      const width = parseInt(savedWidth, 10);
+      if (width >= MIN_WIDTH && width <= MAX_WIDTH) {
+        setSidebarWidth(width);
+        document.documentElement.style.setProperty('--sidebar-width', width + 'px');
+      }
+    }
+  }, []);
 
   const isMfdPage = pathname?.startsWith('/friends');
   const viewMode = isMfdPage ? 'mfd' : 'md';
+
+  // Handle mouse move during resize
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, e.clientX));
+    setSidebarWidth(newWidth);
+    localStorage.setItem('sidebarWidth', newWidth.toString());
+    // Update CSS variable for consistency
+    document.documentElement.style.setProperty('--sidebar-width', newWidth + 'px');
+  }, []);
+
+  // Handle mouse up to stop resize
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
+  // Add/remove event listeners for resize
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
+  const startResize = () => {
+    setIsResizing(true);
+  };
 
   const handleSave = () => {
     if (newDeskName.trim()) {
@@ -85,16 +137,26 @@ export default function Sidebar({ activeSlug }: SidebarProps) {
   );
 
   return (
-    <aside className="w-[280px] min-h-screen bg-[#ffa000] flex flex-col">
+    <aside
+      className="relative min-h-screen bg-[var(--sidebar-bg)] flex flex-col border-r border-[var(--border-color)] transition-colors"
+      style={{ width: 'var(--sidebar-width)' }}
+    >
+      {/* Resize Handle */}
+      <div
+        className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize transition-colors z-10 ${
+          isResizing ? 'bg-[var(--primary)]' : 'hover:bg-[var(--primary)]'
+        }`}
+        onMouseDown={startResize}
+      />
       {/* View Mode Switcher */}
       <div className="p-4 flex justify-center">
-        <div className="inline-flex items-center gap-1 bg-[#cc8a2e] rounded-full p-1.5">
+        <div className="inline-flex items-center gap-1 bg-[var(--sidebar-active)] rounded-full p-1.5">
           <Link
             href="/"
             className={`px-6 py-2 rounded-full text-base font-bold transition-colors ${
               viewMode === 'md'
-                ? 'bg-white text-[#ffa000]'
-                : 'text-[#8b6914] hover:bg-[#c07d1a]'
+                ? 'bg-[var(--surface)] text-[var(--primary)]'
+                : 'text-[var(--sidebar-text)] opacity-70 hover:opacity-100'
             }`}
             title="My Desks"
           >
@@ -104,8 +166,8 @@ export default function Sidebar({ activeSlug }: SidebarProps) {
             href="/friends"
             className={`px-6 py-2 rounded-full text-base font-bold transition-colors ${
               viewMode === 'mfd'
-                ? 'bg-white text-[#ffa000]'
-                : 'text-[#8b6914] hover:bg-[#c07d1a]'
+                ? 'bg-[var(--surface)] text-[var(--primary)]'
+                : 'text-[var(--sidebar-text)] opacity-70 hover:opacity-100'
             }`}
             title="My Friend's Desks"
           >
@@ -129,13 +191,13 @@ export default function Sidebar({ activeSlug }: SidebarProps) {
             {/* Add New Desk */}
             <div className="px-4 mt-4">
               {isAddingDesk ? (
-                <div className="bg-white rounded-md overflow-hidden">
+                <div className="bg-[var(--surface)] rounded-md overflow-hidden border border-[var(--border-color)]">
                   <input
                     type="text"
                     value={newDeskName}
                     onChange={(e) => setNewDeskName(e.target.value)}
                     placeholder="Desk name"
-                    className="w-full px-3 py-2 text-gray-800 outline-none border-2 border-[#ffa000]"
+                    className="w-full px-3 py-2 text-[var(--foreground)] bg-[var(--input-bg)] outline-none border-2 border-[var(--primary)]"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSave();
@@ -145,13 +207,13 @@ export default function Sidebar({ activeSlug }: SidebarProps) {
                   <div className="flex">
                     <button
                       onClick={handleCancel}
-                      className="flex-1 py-2 bg-[#ffa000] text-white text-sm font-medium hover:bg-[#ff8f00] transition-colors"
+                      className="flex-1 py-2 bg-[var(--primary)] text-white text-sm font-medium hover:bg-[var(--primary-dark)] transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
-                      className="flex-1 py-2 bg-white text-gray-800 text-sm font-medium border-t border-gray-200 hover:bg-gray-50 transition-colors"
+                      className="flex-1 py-2 bg-[var(--surface)] text-[var(--foreground)] text-sm font-medium border-t border-[var(--border-color)] hover:bg-[var(--surface-hover)] transition-colors"
                     >
                       Save
                     </button>
@@ -160,7 +222,7 @@ export default function Sidebar({ activeSlug }: SidebarProps) {
               ) : (
                 <button
                   onClick={() => setIsAddingDesk(true)}
-                  className="text-white text-sm hover:underline"
+                  className="text-[var(--sidebar-text)] text-sm hover:underline"
                 >
                   + Add new
                 </button>

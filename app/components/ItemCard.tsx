@@ -45,30 +45,30 @@ const typeIcons: Record<string, ReactNode> = {
     </svg>
   ),
   add: (
-    <svg viewBox="0 0 24 24" className="w-16 h-16 text-[#d4c4a8] fill-current">
+    <svg viewBox="0 0 24 24" className="w-16 h-16 text-[var(--text-muted)] fill-current">
       <path d="M12 4v16m-8-8h16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
     </svg>
   ),
 };
 
 const bgColors: Record<string, string> = {
-  facebook: 'bg-[#3b5998]',
-  linkedin: 'bg-[#4a9ab8]',
-  instagram: 'bg-[#5b6ba8]',
-  note: 'bg-[#4caf50]',
-  book: 'bg-[#9c27b0]',
-  custom: 'bg-[#607d8b]',
-  add: 'bg-[#e8dcc8]',
+  facebook: 'bg-[var(--card-facebook)]',
+  linkedin: 'bg-[var(--card-linkedin)]',
+  instagram: 'bg-[var(--card-instagram)]',
+  note: 'bg-[var(--card-note)]',
+  book: 'bg-[var(--card-book)]',
+  custom: 'bg-[var(--card-custom)]',
+  add: 'bg-[var(--card-add)]',
 };
 
 const buttonColors: Record<string, string> = {
-  facebook: 'bg-[#5a7abf]',
-  linkedin: 'bg-[#6ab4ce]',
-  instagram: 'bg-[#7b8bc8]',
-  note: 'bg-[#66bb6a]',
-  book: 'bg-[#ab47bc]',
-  custom: 'bg-[#78909c]',
-  add: 'bg-[#ffa000]',
+  facebook: 'bg-[var(--card-facebook-btn)]',
+  linkedin: 'bg-[var(--card-linkedin-btn)]',
+  instagram: 'bg-[var(--card-instagram-btn)]',
+  note: 'bg-[var(--card-note-btn)]',
+  book: 'bg-[var(--card-book-btn)]',
+  custom: 'bg-[var(--card-custom-btn)]',
+  add: 'bg-[var(--primary)]',
 };
 
 export default function ItemCard({ item, deskSlug, deskId, isAddCard, isDragOverlay }: ItemCardProps) {

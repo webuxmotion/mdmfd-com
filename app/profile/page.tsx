@@ -78,8 +78,8 @@ export default function ProfilePage() {
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] transition-colors">
+        <div className="text-[var(--text-muted)]">Loading...</div>
       </div>
     );
   }
@@ -89,64 +89,64 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-[var(--background)] transition-colors">
       <Sidebar />
 
       <main className="flex-1 p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">Your profile</h1>
+          <h1 className="text-2xl font-bold text-[var(--primary)]">Your profile</h1>
           <UserProfileButton />
         </div>
 
         {/* Profile Form */}
         <div className="max-w-3xl">
           <form onSubmit={handleSubmit}>
-            <div className="bg-white rounded-2xl border border-gray-200 p-8">
+            <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border-color)] p-8">
               <div className="flex gap-12">
                 {/* Form Fields */}
                 <div className="flex-1 space-y-6">
                   <div className="flex items-center gap-4">
-                    <label className="w-20 text-gray-600">Name</label>
+                    <label className="w-20 text-[var(--text-muted)]">Name</label>
                     <input
                       type="text"
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ffa000]"
+                      className="flex-1 px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)]"
                     />
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <label className="w-20 text-gray-600">Link</label>
+                    <label className="w-20 text-[var(--text-muted)]">Link</label>
                     <div className="flex-1 flex items-center">
-                      <span className="text-gray-500 mr-1">https://mdmfd.com/</span>
+                      <span className="text-[var(--text-muted)] mr-1">https://mdmfd.com/</span>
                       <input
                         type="text"
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, '') })}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ffa000]"
+                        className="flex-1 px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)]"
                       />
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <label className="w-20 text-gray-600">Email</label>
+                    <label className="w-20 text-[var(--text-muted)]">Email</label>
                     <input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ffa000]"
+                      className="flex-1 px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)]"
                     />
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <label className="w-20 text-gray-600">Phone</label>
+                    <label className="w-20 text-[var(--text-muted)]">Phone</label>
                     <input
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="+1234567890"
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ffa000]"
+                      className="flex-1 px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)] placeholder-[var(--text-muted)]"
                     />
                   </div>
 
@@ -154,7 +154,7 @@ export default function ProfilePage() {
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="px-12 py-2 bg-[#ffa000] text-white rounded-lg font-medium hover:bg-[#ff8f00] transition-colors disabled:opacity-50"
+                      className="px-12 py-2 bg-[var(--primary)] text-white rounded-lg font-medium hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-50"
                     >
                       {isSaving ? 'Saving...' : 'Save'}
                     </button>
@@ -171,19 +171,19 @@ export default function ProfilePage() {
 
                 {/* Photo Section */}
                 <div className="flex flex-col items-center">
-                  <span className="text-gray-600 mb-3">Photo</span>
-                  <div className="w-28 h-28 rounded-full bg-gray-100 flex items-center justify-center mb-3 overflow-hidden">
+                  <span className="text-[var(--text-muted)] mb-3">Photo</span>
+                  <div className="w-28 h-28 rounded-full bg-[var(--surface-hover)] flex items-center justify-center mb-3 overflow-hidden">
                     {avatar || session.user.image ? (
                       <img src={avatar || session.user.image || ''} alt={formData.fullName} className="w-full h-full object-cover" />
                     ) : (
-                      <svg viewBox="0 0 24 24" className="w-16 h-16 text-gray-300 fill-current">
+                      <svg viewBox="0 0 24 24" className="w-16 h-16 text-[var(--text-muted)] fill-current">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
                       </svg>
                     )}
                   </div>
                   <button
                     type="button"
-                    className="px-6 py-1.5 border border-[#ffa000] text-[#ffa000] rounded-lg text-sm hover:bg-[#ffa000] hover:text-white transition-colors"
+                    className="px-6 py-1.5 border border-[var(--primary)] text-[var(--primary)] rounded-lg text-sm hover:bg-[var(--primary)] hover:text-white transition-colors"
                   >
                     Upload
                   </button>

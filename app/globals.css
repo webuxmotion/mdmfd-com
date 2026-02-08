@@ -1,19 +1,68 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --sidebar-width: 280px;
+  --background: #f5f0e8;
   --foreground: #171717;
-  --primary: #f9a825;
+  --surface: #ffffff;
+  --surface-hover: #f5f5f5;
+  --primary: #ffa000;
   --primary-dark: #f57c00;
+  --primary-light: #ffb333;
   --sidebar-bg: #ffa000;
+  --sidebar-hover: #ff8f00;
+  --sidebar-active: #f57c00;
   --sidebar-text: #ffffff;
   --card-facebook: #3b5998;
+  --card-facebook-btn: #5a7abf;
   --card-linkedin: #4a9ab8;
+  --card-linkedin-btn: #6ab4ce;
   --card-instagram: #5b6ba8;
+  --card-instagram-btn: #7b8bc8;
+  --card-note: #4caf50;
+  --card-note-btn: #66bb6a;
+  --card-book: #9c27b0;
+  --card-book-btn: #ab47bc;
+  --card-custom: #607d8b;
+  --card-custom-btn: #78909c;
   --card-add: #e8dcc8;
-  --border-color: #f9a825;
-  --input-border: #e0e0e0;
-  --text-muted: #9e9e9e;
+  --border-color: #e0e0e0;
+  --input-border: #d0d0d0;
+  --input-bg: #ffffff;
+  --text-muted: #6b7280;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  --background: #0d1117;
+  --foreground: #e6edf3;
+  --surface: #161b22;
+  --surface-hover: #1f242b;
+  --primary: #d18700;
+  --primary-dark: #b87600;
+  --primary-light: #e69500;
+  --sidebar-bg: #161b22;
+  --sidebar-hover: #1f242b;
+  --sidebar-active: #252b33;
+  --sidebar-text: #e6edf3;
+  --card-facebook: #1e3a5f;
+  --card-facebook-btn: #2d4a6f;
+  --card-linkedin: #1e4a5f;
+  --card-linkedin-btn: #2d5a6f;
+  --card-instagram: #2e3a5f;
+  --card-instagram-btn: #3d4a6f;
+  --card-note: #1e4a2e;
+  --card-note-btn: #2d5a3e;
+  --card-book: #4a1e5a;
+  --card-book-btn: #5a2e6a;
+  --card-custom: #2d3a42;
+  --card-custom-btn: #3d4a52;
+  --card-add: #21262d;
+  --border-color: #30363d;
+  --input-border: #30363d;
+  --input-bg: #0d1117;
+  --text-muted: #8b949e;
+  --shadow: rgba(0, 0, 0, 0.3);
 }
 
 @theme inline {
@@ -31,6 +80,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Custom scrollbar */
@@ -39,7 +89,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--surface);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -49,6 +99,11 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-dark);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: var(--surface);
 }
 
 /* Custom pencil cursor for editable elements */

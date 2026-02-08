@@ -153,13 +153,43 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showCardViewMenu]);
 
+  // Listen for save event from keyboard shortcut
+  // Must be before early return to maintain consistent hook order
+  useEffect(() => {
+    if (!desk || !item) return;
+
+    const handleSaveEvent = async () => {
+      let titleToSave = formData.title;
+      let readmeToSave = formData.readme;
+
+      if (isUnlocked) {
+        titleToSave = await encryptField(formData.title);
+        readmeToSave = await encryptField(formData.readme);
+      }
+
+      updateItem(desk.id, id, {
+        title: titleToSave,
+        link: formData.link,
+        description: formData.description,
+        readme: readmeToSave,
+        cardViewType: formData.cardViewType,
+        emoji: formData.emoji,
+      });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+    };
+
+    document.addEventListener('save-item', handleSaveEvent);
+    return () => document.removeEventListener('save-item', handleSaveEvent);
+  }, [desk, item, id, formData, isUnlocked, encryptField, updateItem]);
+
   if (!desk || !item) {
     return (
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-[var(--background)] transition-colors">
         <Sidebar activeSlug={slug} />
         <main className="flex-1 p-8">
-          <h1 className="text-2xl font-bold text-gray-800">Item not found</h1>
-          <Link href={`/desk/${slug}`} className="text-[#ffa000] hover:underline mt-4 inline-block">
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">Item not found</h1>
+          <Link href={`/desk/${slug}`} className="text-[var(--primary)] hover:underline mt-4 inline-block">
             Go back
           </Link>
         </main>
@@ -208,15 +238,8 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     }
   };
 
-  // Listen for save event from keyboard shortcut
-  useEffect(() => {
-    const handleSaveEvent = () => saveItem();
-    document.addEventListener('save-item', handleSaveEvent);
-    return () => document.removeEventListener('save-item', handleSaveEvent);
-  }, [formData, isUnlocked, encryptField, updateItem, desk, id]);
-
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-[var(--background)] transition-colors">
       <Sidebar activeSlug={slug} />
 
       <div className="flex-1 p-8">
@@ -225,11 +248,11 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
           <div>
             <Link
               href={`/desk/${slug}`}
-              className="text-[#ffa000] hover:underline text-xl font-bold"
+              className="text-[var(--primary)] hover:underline text-xl font-bold"
             >
               {desk.label}
             </Link>
-            <span className="text-gray-800 text-xl font-bold"> -&gt; {formData.title || 'Untitled'}</span>
+            <span className="text-[var(--foreground)] text-xl font-bold"> -&gt; {formData.title || 'Untitled'}</span>
           </div>
           <div className="flex items-center gap-4">
                         <UserProfileButton />
@@ -240,9 +263,9 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
         <div className="flex items-center gap-2 mb-8">
           <Link
             href={`/desk/${slug}`}
-            className="w-12 h-12 rounded-lg bg-[#e8dcc8] flex items-center justify-center hover:bg-[#d4c4a8] transition-colors"
+            className="w-12 h-12 rounded-lg bg-[var(--card-add)] flex items-center justify-center hover:opacity-80 transition-colors"
           >
-            <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#b8a888] fill-current">
+            <svg viewBox="0 0 24 24" className="w-6 h-6 text-[var(--text-muted)] fill-current">
               <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
             </svg>
           </Link>
@@ -269,9 +292,9 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
 
           <Link
             href={`/desk/${slug}/item/new`}
-            className="w-12 h-12 rounded-lg bg-[#e8dcc8] flex items-center justify-center hover:bg-[#d4c4a8] transition-colors"
+            className="w-12 h-12 rounded-lg bg-[var(--card-add)] flex items-center justify-center hover:opacity-80 transition-colors"
           >
-            <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#b8a888]">
+            <svg viewBox="0 0 24 24" className="w-6 h-6 text-[var(--text-muted)]">
               <path d="M12 4v16m-8-8h16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
             </svg>
           </Link>
@@ -282,7 +305,7 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
             <div className="w-8 h-8 border-4 border-[#ffa000] border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : decryptError ? (
-          <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-4 mb-4">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-500 rounded-lg p-4 mb-4">
             {decryptError}
           </div>
         ) : (
@@ -308,14 +331,14 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
                   </button>
 
                   {showCardViewMenu && (
-                    <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]">
+                    <div className="absolute left-0 top-full mt-1 bg-[var(--surface)] rounded-lg shadow-lg border border-[var(--border-color)] py-1 z-50 min-w-[140px]">
                       <button
                         type="button"
                         onClick={() => {
                           setFormData({ ...formData, cardViewType: 'title' });
                           setShowCardViewMenu(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 ${formData.cardViewType === 'title' ? 'text-[#ffa000] font-medium' : 'text-gray-700'}`}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2 ${formData.cardViewType === 'title' ? 'text-[var(--primary)] font-medium' : 'text-[var(--foreground)]'}`}
                       >
                         <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
                           <path d="M5 4v3h5.5v12h3V7H19V4H5z" />
@@ -328,7 +351,7 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
                           setFormData({ ...formData, cardViewType: 'image' });
                           setShowCardViewMenu(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 ${formData.cardViewType === 'image' ? 'text-[#ffa000] font-medium' : 'text-gray-700'}`}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2 ${formData.cardViewType === 'image' ? 'text-[var(--primary)] font-medium' : 'text-[var(--foreground)]'}`}
                       >
                         <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
                           <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
@@ -341,7 +364,7 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
                           setFormData({ ...formData, cardViewType: 'emoji' });
                           setShowCardViewMenu(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center gap-2 ${formData.cardViewType === 'emoji' ? 'text-[#ffa000] font-medium' : 'text-gray-700'}`}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2 ${formData.cardViewType === 'emoji' ? 'text-[var(--primary)] font-medium' : 'text-[var(--foreground)]'}`}
                       >
                         <span className="text-base">😀</span>
                         Emoji
@@ -353,13 +376,13 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
                 {/* Emoji input (shown when emoji type selected) */}
                 {formData.cardViewType === 'emoji' && (
                   <div className="flex items-center gap-2">
-                    <label className="text-gray-600 text-sm">Emoji</label>
+                    <label className="text-[var(--text-muted)] text-sm">Emoji</label>
                     <input
                       type="text"
                       value={formData.emoji}
                       onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
                       placeholder="😀"
-                      className="w-16 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000] text-sm text-center"
+                      className="w-16 px-3 py-1.5 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-md focus:outline-none focus:border-[var(--primary)] text-sm text-center"
                       maxLength={2}
                     />
                   </div>
@@ -367,27 +390,27 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
 
                 {/* Title */}
                 <div className="flex items-center gap-2 flex-1">
-                  <label className="text-gray-600 text-sm">Title</label>
+                  <label className="text-[var(--text-muted)] text-sm">Title</label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000] text-sm"
+                    className="flex-1 px-3 py-1.5 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-md focus:outline-none focus:border-[var(--primary)] text-sm"
                   />
                 </div>
 
                 {/* Link */}
                 <div className="flex items-center gap-2 flex-1">
-                  <label className="text-gray-600 text-sm">Link</label>
+                  <label className="text-[var(--text-muted)] text-sm">Link</label>
                   <input
                     type="url"
                     value={formData.link}
                     onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000] text-sm"
+                    className="flex-1 px-3 py-1.5 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-md focus:outline-none focus:border-[var(--primary)] text-sm"
                   />
                   <button
                     type="button"
-                    className="p-1.5 text-gray-400 hover:text-[#ffa000] transition-colors"
+                    className="p-1.5 text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
                     onClick={() => window.open(formData.link, '_blank')}
                   >
                     <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
@@ -398,20 +421,20 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
 
                 {/* Description */}
                 <div className="flex items-center gap-2 flex-1">
-                  <label className="text-gray-600 text-sm">Desc</label>
+                  <label className="text-[var(--text-muted)] text-sm">Desc</label>
                   <input
                     type="text"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Description..."
-                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000] text-sm"
+                    className="flex-1 px-3 py-1.5 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-md focus:outline-none focus:border-[var(--primary)] text-sm placeholder-[var(--text-muted)]"
                   />
                 </div>
 
                 {/* Save button */}
                 <button
                   type="submit"
-                  className="px-6 py-1.5 bg-[#ffa000] text-white rounded-md font-medium hover:bg-[#ff8f00] transition-colors text-sm flex-shrink-0"
+                  className="px-6 py-1.5 bg-[var(--primary)] text-white rounded-md font-medium hover:bg-[var(--primary-dark)] transition-colors text-sm flex-shrink-0"
                 >
                   Save
                 </button>
@@ -420,7 +443,7 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
                 <button
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                  className="p-1.5 text-[var(--text-muted)] hover:text-red-500 transition-colors flex-shrink-0"
                   title="Delete item"
                 >
                   <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
@@ -452,15 +475,15 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Delete Item</h3>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-[var(--surface)] rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl border border-[var(--border-color)]">
+            <h3 className="text-lg font-bold text-[var(--foreground)] mb-2">Delete Item</h3>
+            <p className="text-[var(--text-muted)] mb-6">
               Are you sure you want to delete &quot;{formData.title || 'this item'}&quot;? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                className="px-4 py-2 text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors"
                 disabled={isDeleting}
               >
                 Cancel

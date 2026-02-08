@@ -7,6 +7,7 @@ import Sidebar from '../../components/Sidebar';
 import ItemCard from '../../components/ItemCard';
 import SortableItemCard from '../../components/SortableItemCard';
 import UserProfileButton from '../../components/UserProfileButton';
+import ThemeSwitcher from '../../components/ThemeSwitcher';
 import { useDesks } from '../../context/DesksContext';
 
 export default function DeskPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -27,11 +28,11 @@ export default function DeskPage({ params }: { params: Promise<{ slug: string }>
 
   if (!desk) {
     return (
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-[var(--background)] transition-colors">
         <Sidebar activeSlug={slug} />
         <main className="flex-1 p-8">
-          <h1 className="text-2xl font-bold text-gray-800">Desk not found</h1>
-          <Link href="/" className="text-[#ffa000] hover:underline mt-4 inline-block">
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">Desk not found</h1>
+          <Link href="/" className="text-[var(--primary)] hover:underline mt-4 inline-block">
             Go back
           </Link>
         </main>
@@ -60,7 +61,7 @@ export default function DeskPage({ params }: { params: Promise<{ slug: string }>
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-[var(--background)] transition-colors">
       <Sidebar activeSlug={slug} />
 
       <main className="flex-1 p-8">
@@ -74,18 +75,21 @@ export default function DeskPage({ params }: { params: Promise<{ slug: string }>
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={handleSave}
               onKeyDown={handleKeyDown}
-              className="text-2xl font-bold text-gray-800 bg-transparent border-b-2 border-[#ffa000] outline-none px-1"
+              className="text-2xl font-bold text-[var(--foreground)] bg-transparent border-b-2 border-[var(--primary)] outline-none px-1"
             />
           ) : (
             <h1
               onClick={handleStartEdit}
-              className="text-2xl font-bold text-gray-800 cursor-pencil hover:text-[#ffa000] transition-colors"
+              className="text-2xl font-bold text-[var(--foreground)] cursor-pencil hover:text-[var(--primary)] transition-colors"
               title="Click to edit"
             >
               {desk.label}
             </h1>
           )}
-          <UserProfileButton />
+          <div className="flex items-center gap-3">
+            <ThemeSwitcher />
+            <UserProfileButton />
+          </div>
         </div>
 
         {/* Items */}

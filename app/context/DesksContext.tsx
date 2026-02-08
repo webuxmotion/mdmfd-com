@@ -48,7 +48,7 @@ function saveGuestDesks(desks: Desk[]) {
 
 export function DesksProvider({ children }: { children: ReactNode }) {
   const { status } = useSession();
-  const [desks, setDesks] = useState<Desk[]>([]);
+  const [desks, setDesks] = useState<Desk[]>(initialDesks);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -389,31 +389,23 @@ export function DesksProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  if (!isLoaded || isAuthLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f0e8]">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#ffa000] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  // Don't block rendering - show children with initialDesks while loading
+  // This prevents hydration mismatch and flash during navigation
 
   if (error && !isGuest) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f0e8]">
-        <div className="text-center max-w-md p-8 bg-white rounded-lg shadow-lg">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)] transition-colors">
+        <div className="text-center max-w-md p-8 bg-[var(--surface)] rounded-lg shadow-lg border border-[var(--border-color)]">
+          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg viewBox="0 0 24 24" className="w-8 h-8 text-red-500 fill-current">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Connection Error</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
+          <h2 className="text-xl font-bold text-[var(--foreground)] mb-2">Connection Error</h2>
+          <p className="text-[var(--text-muted)] mb-6">{error}</p>
           <button
             onClick={() => fetchDesks()}
-            className="px-6 py-2 bg-[#ffa000] text-white rounded-lg font-medium hover:bg-[#ff8f00] transition-colors"
+            className="px-6 py-2 bg-[var(--primary)] text-white rounded-lg font-medium hover:bg-[var(--primary-dark)] transition-colors"
           >
             Try Again
           </button>

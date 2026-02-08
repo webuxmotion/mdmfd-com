@@ -43,11 +43,11 @@ export default function UnlockModal() {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
+      <div className="bg-[var(--surface)] rounded-2xl shadow-xl max-w-md w-full p-8 border border-[var(--border-color)]">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-[#ffa000]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-[var(--primary)]/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
-              className="w-8 h-8 text-[#ffa000]"
+              className="w-8 h-8 text-[var(--primary)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -60,26 +60,26 @@ export default function UnlockModal() {
               />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-gray-800">Unlock Your Data</h2>
-          <p className="text-gray-500 text-sm mt-2">
+          <h2 className="text-xl font-bold text-[var(--foreground)]">Unlock Your Data</h2>
+          <p className="text-[var(--text-muted)] text-sm mt-2">
             Enter your password to decrypt your data
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-500 rounded-lg text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleUnlock}>
           <div className="mb-4">
-            <label className="block text-gray-600 text-sm mb-1">Password</label>
+            <label className="block text-[var(--text-muted)] text-sm mb-1">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ffa000]"
+              className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)]"
               placeholder="Enter your password"
               autoFocus
               required
@@ -89,7 +89,7 @@ export default function UnlockModal() {
           <button
             type="submit"
             disabled={isLoading || !password}
-            className="w-full py-2 bg-[#ffa000] text-white rounded-lg font-medium hover:bg-[#ff8f00] transition-colors disabled:opacity-50"
+            className="w-full py-2 bg-[var(--primary)] text-white rounded-lg font-medium hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-50"
           >
             {isLoading ? 'Unlocking...' : 'Unlock'}
           </button>

@@ -83,26 +83,26 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4 transition-colors">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-[#ffa000] rounded-full px-6 py-3">
+          <div className="inline-flex items-center gap-2 bg-[var(--primary)] rounded-full px-6 py-3">
             <span className="text-white font-bold text-xl">MD</span>
-            <span className="text-white font-bold text-xl">MFD</span>
+            <span className="text-white/70 font-bold text-xl">MFD</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-          <h1 className="text-2xl font-bold text-gray-800 text-center mb-2">Reset Password</h1>
-          <p className="text-gray-600 text-sm text-center mb-6">
+        <div className="bg-[var(--surface)] rounded-2xl shadow-lg border border-[var(--border-color)] p-8">
+          <h1 className="text-2xl font-bold text-[var(--foreground)] text-center mb-2">Reset Password</h1>
+          <p className="text-[var(--text-muted)] text-sm text-center mb-6">
             {step === 'email'
               ? 'Enter your email address to start the recovery process.'
               : 'Enter your recovery key and new password.'}
           </p>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-500 rounded-lg text-sm">
               {error}
             </div>
           )}
@@ -110,12 +110,12 @@ export default function ForgotPasswordPage() {
           {step === 'email' ? (
             <form onSubmit={handleEmailSubmit} className="space-y-4">
               <div>
-                <label className="block text-gray-600 text-sm mb-1">Email</label>
+                <label className="block text-[var(--text-muted)] text-sm mb-1">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ffa000]"
+                  className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)] placeholder-[var(--text-muted)]"
                   placeholder="your@email.com"
                   required
                 />
@@ -124,7 +124,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2 bg-[#ffa000] text-white rounded-lg font-medium hover:bg-[#ff8f00] transition-colors disabled:opacity-50"
+                className="w-full py-2 bg-[var(--primary)] text-white rounded-lg font-medium hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-50"
               >
                 {isLoading ? 'Checking...' : 'Continue'}
               </button>
@@ -132,38 +132,38 @@ export default function ForgotPasswordPage() {
           ) : (
             <form onSubmit={handleRecoverySubmit} className="space-y-4">
               <div>
-                <label className="block text-gray-600 text-sm mb-1">Recovery Key</label>
+                <label className="block text-[var(--text-muted)] text-sm mb-1">Recovery Key</label>
                 <input
                   type="text"
                   value={recoveryKey}
                   onChange={(e) => setRecoveryKey(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ffa000] font-mono tracking-wider"
+                  className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)] font-mono tracking-wider placeholder-[var(--text-muted)]"
                   placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
                   required
                 />
-                <p className="text-gray-500 text-xs mt-1">
+                <p className="text-[var(--text-muted)] text-xs mt-1">
                   Enter the recovery key you saved when you created your account.
                 </p>
               </div>
 
               <div>
-                <label className="block text-gray-600 text-sm mb-1">New Password</label>
+                <label className="block text-[var(--text-muted)] text-sm mb-1">New Password</label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ffa000]"
+                  className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-gray-600 text-sm mb-1">Confirm New Password</label>
+                <label className="block text-[var(--text-muted)] text-sm mb-1">Confirm New Password</label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ffa000]"
+                  className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)]"
                   required
                 />
               </div>
@@ -171,7 +171,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2 bg-[#ffa000] text-white rounded-lg font-medium hover:bg-[#ff8f00] transition-colors disabled:opacity-50"
+                className="w-full py-2 bg-[var(--primary)] text-white rounded-lg font-medium hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-50"
               >
                 {isLoading ? 'Resetting...' : 'Reset Password'}
               </button>
@@ -179,16 +179,16 @@ export default function ForgotPasswordPage() {
               <button
                 type="button"
                 onClick={() => setStep('email')}
-                className="w-full py-2 text-gray-600 text-sm hover:text-gray-800"
+                className="w-full py-2 text-[var(--text-muted)] text-sm hover:text-[var(--foreground)]"
               >
                 Back to email
               </button>
             </form>
           )}
 
-          <p className="text-center text-gray-500 text-sm mt-6">
+          <p className="text-center text-[var(--text-muted)] text-sm mt-6">
             Remember your password?{' '}
-            <Link href="/login" className="text-[#ffa000] hover:underline">
+            <Link href="/login" className="text-[var(--primary)] hover:underline">
               Sign in
             </Link>
           </p>

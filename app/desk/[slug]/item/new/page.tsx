@@ -70,11 +70,11 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
 
   if (!desk) {
     return (
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-[var(--background)] transition-colors">
         <Sidebar activeSlug={slug} />
         <main className="flex-1 p-8">
-          <h1 className="text-2xl font-bold text-gray-800">Desk not found</h1>
-          <Link href="/" className="text-[#ffa000] hover:underline mt-4 inline-block">
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">Desk not found</h1>
+          <Link href="/" className="text-[var(--primary)] hover:underline mt-4 inline-block">
             Go back
           </Link>
         </main>
@@ -100,7 +100,7 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-[var(--background)] transition-colors">
       <Sidebar activeSlug={slug} />
 
       <div className="flex-1 p-8">
@@ -108,16 +108,16 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
         <div className="mb-6">
           <Link
             href={`/desk/${slug}`}
-            className="text-[#ffa000] hover:underline text-xl font-bold"
+            className="text-[var(--primary)] hover:underline text-xl font-bold"
           >
             {desk.label}
           </Link>
-          <span className="text-gray-800 text-xl font-bold"> -&gt; New Item</span>
+          <span className="text-[var(--foreground)] text-xl font-bold"> -&gt; New Item</span>
         </div>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-gray-400">
+          <h1 className="text-2xl font-bold text-[var(--text-muted)]">
             {formData.title || 'Add title...'}
           </h1>
           <UserProfileButton />
@@ -127,9 +127,9 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
         <div className="flex items-center gap-2 mb-8">
           <Link
             href={`/desk/${slug}`}
-            className="w-12 h-12 rounded-lg bg-[#e8dcc8] flex items-center justify-center hover:bg-[#d4c4a8] transition-colors"
+            className="w-12 h-12 rounded-lg bg-[var(--card-add)] flex items-center justify-center hover:opacity-80 transition-colors"
           >
-            <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#b8a888] fill-current">
+            <svg viewBox="0 0 24 24" className="w-6 h-6 text-[var(--text-muted)] fill-current">
               <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
             </svg>
           </Link>
@@ -150,41 +150,41 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
             </Link>
           ))}
 
-          <div className="w-12 h-12 rounded-lg bg-[#e8dcc8] flex items-center justify-center ring-2 ring-[#ffa000]">
-            <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#b8a888]">
+          <div className="w-12 h-12 rounded-lg bg-[var(--card-add)] flex items-center justify-center ring-2 ring-[var(--primary)]">
+            <svg viewBox="0 0 24 24" className="w-6 h-6 text-[var(--text-muted)]">
               <path d="M12 4v16m-8-8h16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
             </svg>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="border-2 border-[#ffa000] rounded-2xl p-8 max-w-3xl">
+        <form onSubmit={handleSubmit} className="border-2 border-[var(--primary)] rounded-2xl p-8 max-w-3xl bg-[var(--surface)]">
           <div className="flex gap-8">
             <div className="flex-1 space-y-6">
               <div className="flex items-center gap-4">
-                <label className="w-24 text-gray-600 text-right">Title</label>
+                <label className="w-24 text-[var(--text-muted)] text-right">Title</label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Add title..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000]"
+                  className="flex-1 px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-md focus:outline-none focus:border-[var(--primary)] placeholder-[var(--text-muted)]"
                 />
               </div>
 
               <div className="flex items-center gap-4">
-                <label className="w-24 text-gray-600 text-right">Link</label>
+                <label className="w-24 text-[var(--text-muted)] text-right">Link</label>
                 <div className="flex-1 flex items-center gap-2">
                   <input
                     type="url"
                     value={formData.link}
                     onChange={(e) => setFormData({ ...formData, link: e.target.value })}
                     placeholder="https://"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000]"
+                    className="flex-1 px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-md focus:outline-none focus:border-[var(--primary)] placeholder-[var(--text-muted)]"
                   />
                   <button
                     type="button"
-                    className="p-2 text-gray-400 hover:text-[#ffa000] transition-colors"
+                    className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
                     onClick={() => formData.link && window.open(formData.link, '_blank')}
                   >
                     <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
@@ -195,7 +195,7 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
               </div>
 
               <div className="flex items-center gap-4">
-                <label className="w-24 text-gray-600 text-right">Type</label>
+                <label className="w-24 text-[var(--text-muted)] text-right">Type</label>
                 <div className="flex gap-2 flex-wrap">
                   {itemTypes.map((type) => (
                     <button
@@ -203,7 +203,7 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
                       type="button"
                       onClick={() => setFormData({ ...formData, type })}
                       className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all ${bgColors[type]} ${
-                        formData.type === type ? 'ring-2 ring-[#ffa000] opacity-100' : 'opacity-50 hover:opacity-75'
+                        formData.type === type ? 'ring-2 ring-[var(--primary)] opacity-100' : 'opacity-50 hover:opacity-75'
                       }`}
                     >
                       {typeIcons[type]}
@@ -213,33 +213,33 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
               </div>
 
               <div className="flex items-start gap-4">
-                <label className="w-24 text-gray-600 text-right pt-2">Description</label>
+                <label className="w-24 text-[var(--text-muted)] text-right pt-2">Description</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Write description here..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#ffa000] min-h-[120px] resize-none"
+                  className="flex-1 px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-md focus:outline-none focus:border-[var(--primary)] min-h-[120px] resize-none placeholder-[var(--text-muted)]"
                 />
               </div>
             </div>
 
             {/* Image section */}
             <div className="flex flex-col items-center">
-              <span className="text-gray-600 mb-2">Image</span>
-              <div className="w-28 h-28 rounded-lg flex items-center justify-center mb-4 bg-gray-100 border border-gray-200">
-                <svg viewBox="0 0 24 24" className="w-12 h-12 text-gray-300 fill-current">
+              <span className="text-[var(--text-muted)] mb-2">Image</span>
+              <div className="w-28 h-28 rounded-lg flex items-center justify-center mb-4 bg-[var(--surface-hover)] border border-[var(--border-color)]">
+                <svg viewBox="0 0 24 24" className="w-12 h-12 text-[var(--text-muted)] fill-current">
                   <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
                 </svg>
               </div>
               <button
                 type="button"
-                className="px-6 py-1 border border-[#ffa000] text-[#ffa000] rounded-md text-sm hover:bg-[#ffa000] hover:text-white transition-colors mb-2"
+                className="px-6 py-1 border border-[var(--primary)] text-[var(--primary)] rounded-md text-sm hover:bg-[var(--primary)] hover:text-white transition-colors mb-2"
               >
                 Upload
               </button>
               <button
                 type="button"
-                className="px-6 py-1 border border-[#ffa000] text-[#ffa000] rounded-md text-sm hover:bg-[#ffa000] hover:text-white transition-colors"
+                className="px-6 py-1 border border-[var(--primary)] text-[var(--primary)] rounded-md text-sm hover:bg-[var(--primary)] hover:text-white transition-colors"
               >
                 Proposition
               </button>
@@ -252,8 +252,8 @@ export default function NewItemPage({ params }: { params: Promise<{ slug: string
               disabled={!isFormValid}
               className={`px-12 py-2 rounded-md font-medium transition-colors ${
                 isFormValid
-                  ? 'bg-[#ffa000] text-white hover:bg-[#ff8f00]'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  ? 'bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)]'
+                  : 'bg-[var(--surface-hover)] text-[var(--text-muted)] cursor-not-allowed'
               }`}
             >
               Save

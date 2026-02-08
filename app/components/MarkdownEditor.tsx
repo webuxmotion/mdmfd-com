@@ -23,7 +23,7 @@ function parseMarkdown(text: string): string {
     // Handle code blocks
     if (line.startsWith('```')) {
       if (inCodeBlock) {
-        result.push(`<pre class="bg-gray-100 p-3 rounded my-1 overflow-x-auto text-sm"><code>${codeContent.join('\n')}</code></pre>`);
+        result.push(`<pre class="bg-[var(--surface-hover)] p-3 rounded my-1 overflow-x-auto text-sm"><code>${codeContent.join('\n')}</code></pre>`);
         codeContent = [];
         inCodeBlock = false;
       } else {
@@ -61,13 +61,13 @@ function parseMarkdown(text: string): string {
 
     // Horizontal rule
     if (line === '---') {
-      result.push('<hr class="my-2 border-gray-300" />');
+      result.push('<hr class="my-2 border-[var(--border-color)]" />');
       continue;
     }
 
     // Blockquotes
     if (line.startsWith('&gt; ')) {
-      result.push(`<blockquote class="border-l-4 border-gray-300 pl-4 text-gray-600">${line.slice(5)}</blockquote>`);
+      result.push(`<blockquote class="border-l-4 border-[var(--border-color)] pl-4 text-[var(--text-muted)]">${line.slice(5)}</blockquote>`);
       continue;
     }
 
@@ -96,7 +96,7 @@ function processInline(text: string): string {
   let result = text;
 
   // Inline code
-  result = result.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 rounded text-sm">$1</code>');
+  result = result.replace(/`([^`]+)`/g, '<code class="bg-[var(--surface-hover)] px-1 rounded text-sm">$1</code>');
 
   // Bold
   result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -168,7 +168,7 @@ export default function MarkdownEditor({ value, onChange }: MarkdownEditorProps)
       type="button"
       onClick={onClick}
       title={title}
-      className="p-2 hover:bg-gray-200 rounded transition-colors text-gray-600"
+      className="p-2 hover:bg-[var(--surface-hover)] rounded transition-colors text-[var(--text-muted)]"
     >
       {children}
     </button>
@@ -178,9 +178,9 @@ export default function MarkdownEditor({ value, onChange }: MarkdownEditorProps)
     <div className="mt-8">
       <div className="flex gap-4">
         {/* Editor */}
-        <div className="flex-1 border border-gray-300 rounded-lg overflow-hidden">
+        <div className="flex-1 border border-[var(--border-color)] rounded-lg overflow-hidden bg-[var(--surface)]">
           {/* Toolbar */}
-          <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50 flex-wrap">
+          <div className="flex items-center gap-1 p-2 border-b border-[var(--border-color)] bg-[var(--surface-hover)] flex-wrap">
             <ToolbarButton onClick={() => insertLine('# ')} title="Heading 1">
               <span className="font-bold text-sm">H</span>
             </ToolbarButton>
@@ -193,14 +193,14 @@ export default function MarkdownEditor({ value, onChange }: MarkdownEditorProps)
             <ToolbarButton onClick={() => insertFormat('~~')} title="Strikethrough">
               <span className="line-through">S</span>
             </ToolbarButton>
-            <span className="w-px h-6 bg-gray-300 mx-1" />
+            <span className="w-px h-6 bg-[var(--border-color)] mx-1" />
             <ToolbarButton onClick={() => insertFormat('`')} title="Inline Code">
               <span className="font-mono text-sm">&lt;/&gt;</span>
             </ToolbarButton>
             <ToolbarButton onClick={() => insertFormat('\n```\n', '\n```\n')} title="Code Block">
               <span className="font-mono text-xs">CB</span>
             </ToolbarButton>
-            <span className="w-px h-6 bg-gray-300 mx-1" />
+            <span className="w-px h-6 bg-[var(--border-color)] mx-1" />
             <ToolbarButton onClick={() => insertLine('- ')} title="Bullet List">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="9" y1="6" x2="20" y2="6" />
@@ -221,7 +221,7 @@ export default function MarkdownEditor({ value, onChange }: MarkdownEditorProps)
                 <text x="2" y="20" fontSize="8" fill="currentColor" stroke="none">3</text>
               </svg>
             </ToolbarButton>
-            <span className="w-px h-6 bg-gray-300 mx-1" />
+            <span className="w-px h-6 bg-[var(--border-color)] mx-1" />
             <ToolbarButton onClick={() => insertLine('> ')} title="Quote">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
@@ -244,17 +244,17 @@ export default function MarkdownEditor({ value, onChange }: MarkdownEditorProps)
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="Write your README here using Markdown..."
-            className="w-full min-h-[300px] p-4 resize-none focus:outline-none font-mono text-sm"
+            className="w-full min-h-[300px] p-4 resize-none focus:outline-none font-mono text-sm bg-[var(--input-bg)] text-[var(--foreground)] placeholder-[var(--text-muted)]"
           />
         </div>
 
         {/* Preview */}
-        <div className="flex-1 border border-gray-300 rounded-lg overflow-hidden">
-          <div className="p-2 border-b border-gray-200 bg-gray-50">
-            <span className="text-gray-600 text-sm font-medium">Preview</span>
+        <div className="flex-1 border border-[var(--border-color)] rounded-lg overflow-hidden bg-[var(--surface)]">
+          <div className="p-2 border-b border-[var(--border-color)] bg-[var(--surface-hover)]">
+            <span className="text-[var(--text-muted)] text-sm font-medium">Preview</span>
           </div>
           <div
-            className="p-4 min-h-[300px] overflow-y-auto prose prose-sm max-w-none"
+            className="p-4 min-h-[300px] overflow-y-auto prose prose-sm max-w-none text-[var(--foreground)]"
             dangerouslySetInnerHTML={{ __html: parseMarkdown(value) }}
           />
         </div>
