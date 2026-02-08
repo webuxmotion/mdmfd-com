@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '../../../lib/mongodb';
 import bcrypt from 'bcryptjs';
-import { generateMasterKey, encryptMasterKey } from '../../../lib/encryption.server';
+import {
+  generateMasterKey,
+  encryptMasterKey,
+  generateRecoveryKey,
+  hashRecoveryKey,
+  encryptMasterKeyWithRecovery,
+} from '../../../lib/encryption.server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,9 +45,14 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Generate and encrypt master key for end-to-end encryption
+    // Generate master key and recovery key for end-to-end encryption
     const masterKey = generateMasterKey();
     const encryptedMasterKey = encryptMasterKey(masterKey, password);
+
+    // Generate recovery key and encrypt master key with it
+    const recoveryKey = generateRecoveryKey();
+    const recoveryKeyHash = hashRecoveryKey(recoveryKey);
+    const recoveryEncryptedMasterKey = encryptMasterKeyWithRecovery(masterKey, recoveryKey);
 
     const newUser = {
       username,
@@ -49,6 +60,8 @@ export async function POST(request: NextRequest) {
       email,
       password: hashedPassword,
       encryptedMasterKey,
+      recoveryKeyHash,
+      recoveryEncryptedMasterKey,
       phone: '',
       avatar: '',
       link: `https://mdmfd.com/${username}`,
@@ -60,6 +73,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       userId: result.insertedId.toString(),
+      recoveryKey, // Show this once to the user
     });
   } catch (error) {
     console.error('Registration error:', error);

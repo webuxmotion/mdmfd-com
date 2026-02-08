@@ -4,7 +4,14 @@ import Credentials from "next-auth/providers/credentials"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import clientPromise from "@/app/lib/mongodb"
 import bcrypt from "bcryptjs"
-import { generateMasterKey, encryptMasterKey } from "@/app/lib/encryption.server"
+import {
+  generateMasterKey,
+  encryptMasterKey,
+  decryptMasterKey,
+  generateRecoveryKey,
+  hashRecoveryKey,
+  encryptMasterKeyWithRecovery,
+} from "@/app/lib/encryption.server"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: MongoDBAdapter(clientPromise, {
@@ -45,17 +52,69 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null
         }
 
-        // Generate master key for existing users who don't have one
+        // Generate master key and recovery key for existing users who don't have them
         let encryptedMasterKey = user.encryptedMasterKey
         if (!encryptedMasterKey) {
+          // User has no encryption - generate everything
           const masterKey = generateMasterKey()
           encryptedMasterKey = encryptMasterKey(masterKey, credentials.password as string)
 
-          // Save the encrypted master key to the database
+          // Generate recovery key
+          const recoveryKey = generateRecoveryKey()
+          const recoveryKeyHash = hashRecoveryKey(recoveryKey)
+          const recoveryEncryptedMasterKey = encryptMasterKeyWithRecovery(masterKey, recoveryKey)
+
+          // Save to database
           await db.collection("users").updateOne(
             { _id: user._id },
-            { $set: { encryptedMasterKey } }
+            {
+              $set: {
+                encryptedMasterKey,
+                recoveryKeyHash,
+                recoveryEncryptedMasterKey,
+              }
+            }
           )
+
+          // Store recovery key temporarily for user to view (expires in 1 hour)
+          await db.collection("pendingRecoveryKeys").insertOne({
+            userId: user._id,
+            recoveryKey,
+            createdAt: new Date(),
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+          })
+        } else if (!user.recoveryKeyHash) {
+          // User has encryption but no recovery key - generate recovery key only
+          try {
+            // Decrypt master key with password
+            const masterKey = decryptMasterKey(encryptedMasterKey, credentials.password as string)
+
+            // Generate recovery key
+            const recoveryKey = generateRecoveryKey()
+            const recoveryKeyHash = hashRecoveryKey(recoveryKey)
+            const recoveryEncryptedMasterKey = encryptMasterKeyWithRecovery(masterKey, recoveryKey)
+
+            // Save to database
+            await db.collection("users").updateOne(
+              { _id: user._id },
+              {
+                $set: {
+                  recoveryKeyHash,
+                  recoveryEncryptedMasterKey,
+                }
+              }
+            )
+
+            // Store recovery key temporarily for user to view (expires in 1 hour)
+            await db.collection("pendingRecoveryKeys").insertOne({
+              userId: user._id,
+              recoveryKey,
+              createdAt: new Date(),
+              expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+            })
+          } catch (error) {
+            console.error("Failed to generate recovery key for existing user:", error)
+          }
         }
 
         return {

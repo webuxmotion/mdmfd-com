@@ -46,11 +46,17 @@ export default function RegisterPage() {
       }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const data = await response.json();
       setError(data.error || 'Registration failed');
       setIsLoading(false);
       return;
+    }
+
+    // Store recovery key temporarily in sessionStorage
+    if (data.recoveryKey) {
+      sessionStorage.setItem('pendingRecoveryKey', data.recoveryKey);
     }
 
     const result = await signIn('credentials', {
@@ -69,7 +75,8 @@ export default function RegisterPage() {
         // Decrypt master key with password
         await unlockWithPassword(session.user.encryptedMasterKey, formData.password);
       }
-      router.push('/');
+      // Redirect to recovery key display page
+      router.push('/recovery-key');
       router.refresh();
     }
   };

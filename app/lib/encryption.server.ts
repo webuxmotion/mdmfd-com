@@ -74,3 +74,41 @@ export function decryptMasterKey(encryptedMasterKey: string, password: string): 
 
   return decrypted.toString('utf8');
 }
+
+/**
+ * Generates a human-readable recovery key
+ * Format: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX (24 characters, 6 groups)
+ * Uses base32-like alphabet (no 0, O, 1, I, L to avoid confusion)
+ */
+export function generateRecoveryKey(): string {
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.randomBytes(24);
+  let result = '';
+
+  for (let i = 0; i < 24; i++) {
+    if (i > 0 && i % 4 === 0) {
+      result += '-';
+    }
+    result += alphabet[bytes[i] % alphabet.length];
+  }
+
+  return result;
+}
+
+/**
+ * Hashes the recovery key for storage (we don't store plain recovery key)
+ */
+export function hashRecoveryKey(recoveryKey: string): string {
+  // Normalize: remove dashes and uppercase
+  const normalized = recoveryKey.replace(/-/g, '').toUpperCase();
+  return crypto.createHash('sha256').update(normalized).digest('hex');
+}
+
+/**
+ * Encrypts the master key with recovery key
+ */
+export function encryptMasterKeyWithRecovery(masterKeyBase64: string, recoveryKey: string): string {
+  // Normalize recovery key
+  const normalized = recoveryKey.replace(/-/g, '').toUpperCase();
+  return encryptMasterKey(masterKeyBase64, normalized);
+}

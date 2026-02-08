@@ -37,7 +37,16 @@ export default function LoginPage() {
         // Decrypt master key with password
         await unlockWithPassword(session.user.encryptedMasterKey, formData.password);
       }
-      router.push('/');
+
+      // Check if there's a pending recovery key to show (for existing users who just got encryption)
+      const pendingRes = await fetch('/api/auth/pending-recovery-key');
+      const pendingData = await pendingRes.json();
+
+      if (pendingData.recoveryKey) {
+        router.push('/recovery-key');
+      } else {
+        router.push('/');
+      }
       router.refresh();
     }
   };
@@ -81,7 +90,12 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-gray-600 text-sm mb-1">Password</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-gray-600 text-sm">Password</label>
+                <Link href="/forgot-password" className="text-[#ffa000] text-sm hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 type="password"
                 value={formData.password}
