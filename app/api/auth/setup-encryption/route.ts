@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already has encryption set up
-    if (user.encryptedMasterKey) {
+    if ('encryptedMasterKey' in user && user.encryptedMasterKey) {
       return NextResponse.json(
         { error: 'Encryption already set up' },
         { status: 400 }
