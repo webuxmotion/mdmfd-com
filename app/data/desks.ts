@@ -30,20 +30,6 @@ export const initialDesks: Desk[] = [
         link: 'https://www.facebook.com/hitthesun',
         description: '',
       },
-      {
-        id: '2',
-        type: 'linkedin',
-        title: 'My LinkedIn',
-        link: 'https://www.linkedin.com/in/username',
-        description: '',
-      },
-      {
-        id: '3',
-        type: 'instagram',
-        title: 'My Instagram',
-        link: 'https://www.instagram.com/username',
-        description: '',
-      },
     ],
   },
   {

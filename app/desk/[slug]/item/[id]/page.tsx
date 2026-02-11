@@ -8,6 +8,7 @@ import MarkdownEditor from '../../../../components/MarkdownEditor';
 import UserProfileButton from '../../../../components/UserProfileButton';
 import { useDesks } from '../../../../context/DesksContext';
 import { useEncryption } from '../../../../context/EncryptionContext';
+import { useSession } from 'next-auth/react';
 
 const bgColors: Record<string, string> = {
   facebook: 'bg-[#3b5998]',
@@ -22,11 +23,13 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
   const { slug, id } = use(params);
   const { getDeskBySlug, getItem, updateItem, deleteItem, refreshDesks } = useDesks();
   const router = useRouter();
+  const { data: session } = useSession();
   const {
     isUnlocked,
     encryptField,
     decryptField,
     isFieldEncrypted,
+    unlockWithPassword,
   } = useEncryption();
 
   const desk = getDeskBySlug(slug);
@@ -50,6 +53,14 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
   const [decryptedTitles, setDecryptedTitles] = useState<Record<string, string>>({});
   const lastFetchedRef = useRef<string | null>(null);
 
+  // Readme visibility state
+  const [readmeVisible, setReadmeVisible] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isReadmeEncrypted, setIsReadmeEncrypted] = useState(false);
+  const [rawEncryptedReadme, setRawEncryptedReadme] = useState<string>('');
+
   // Fetch fresh data from server when visiting the page
   useEffect(() => {
     const key = `${slug}-${id}`;
@@ -60,14 +71,15 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, id]);
 
-  // Decrypt all item titles for tabs
+  // Decrypt all item titles for tabs (may include legacy encrypted titles)
   useEffect(() => {
-    if (!desk || !isUnlocked) return;
+    if (!desk) return;
 
     const decryptAllTitles = async () => {
       const titles: Record<string, string> = {};
       for (const i of desk.items) {
-        if (isFieldEncrypted(i.title)) {
+        // Check if title is encrypted (legacy data)
+        if (isUnlocked && isFieldEncrypted(i.title)) {
           try {
             titles[i.id] = await decryptField(i.title);
           } catch {
@@ -83,25 +95,43 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     decryptAllTitles();
   }, [desk, isUnlocked, decryptField, isFieldEncrypted]);
 
-  // Decrypt fields when item loads or when unlocked
+  // Load item data - decrypt legacy encrypted titles, readme may be encrypted
   useEffect(() => {
     if (!item) return;
 
-    const loadAndDecrypt = async () => {
+    const loadItem = async () => {
       setIsDecrypting(true);
       setDecryptError(null);
 
       try {
-        let title = item.title;
-        let readme = item.readme || '';
+        const readmeRaw = item.readme || '';
+        const readmeEncrypted = isFieldEncrypted(readmeRaw);
 
-        if (isUnlocked) {
-          if (isFieldEncrypted(item.title)) {
+        // Track if readme is encrypted
+        setIsReadmeEncrypted(readmeEncrypted);
+        setRawEncryptedReadme(readmeRaw);
+
+        // Decrypt title if it was previously encrypted (legacy data)
+        let title = item.title;
+        if (isUnlocked && isFieldEncrypted(item.title)) {
+          try {
             title = await decryptField(item.title);
+          } catch {
+            // Keep original if decryption fails
           }
-          if (isFieldEncrypted(item.readme || '')) {
-            readme = await decryptField(item.readme || '');
-          }
+        }
+
+        // For readme: if it's encrypted, don't auto-decrypt - keep it hidden
+        // If not encrypted or empty, show it directly
+        let readme = readmeRaw;
+        if (readmeEncrypted) {
+          // Keep readme hidden (empty for now, will be decrypted when user reveals)
+          readme = '';
+          setReadmeVisible(false);
+        } else {
+          // Not encrypted, show directly
+          readme = readmeRaw;
+          setReadmeVisible(true);
         }
 
         setFormData({
@@ -119,7 +149,7 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
       }
     };
 
-    loadAndDecrypt();
+    loadItem();
   }, [item, isUnlocked, decryptField, isFieldEncrypted]);
 
   // Keyboard shortcut: Cmd+S or Ctrl+S to save
@@ -159,16 +189,15 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     if (!desk || !item) return;
 
     const handleSaveEvent = async () => {
-      let titleToSave = formData.title;
       let readmeToSave = formData.readme;
 
+      // Only encrypt README, title stays plain text
       if (isUnlocked) {
-        titleToSave = await encryptField(formData.title);
         readmeToSave = await encryptField(formData.readme);
       }
 
       updateItem(desk.id, id, {
-        title: titleToSave,
+        title: formData.title,
         link: formData.link,
         description: formData.description,
         readme: readmeToSave,
@@ -198,17 +227,15 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
   }
 
   const saveItem = async () => {
-    let titleToSave = formData.title;
     let readmeToSave = formData.readme;
 
-    // Always encrypt if unlocked
+    // Only encrypt README, title stays plain text
     if (isUnlocked) {
-      titleToSave = await encryptField(formData.title);
       readmeToSave = await encryptField(formData.readme);
     }
 
     updateItem(desk.id, id, {
-      title: titleToSave,
+      title: formData.title,
       link: formData.link,
       description: formData.description,
       readme: readmeToSave,
@@ -235,6 +262,65 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
       console.error('Error deleting item:', error);
       setIsDeleting(false);
       setShowDeleteConfirm(false);
+    }
+  };
+
+  // Handle readme visibility toggle
+  const handleToggleReadmeVisibility = async () => {
+    if (readmeVisible) {
+      // Hide readme
+      setReadmeVisible(false);
+      return;
+    }
+
+    // User wants to show readme
+    if (!isReadmeEncrypted || !rawEncryptedReadme) {
+      // Not encrypted, just show it
+      setReadmeVisible(true);
+      return;
+    }
+
+    // Readme is encrypted - check if encryption is unlocked
+    if (isUnlocked) {
+      // Already unlocked, decrypt and show
+      try {
+        const decryptedReadme = await decryptField(rawEncryptedReadme);
+        setFormData(prev => ({ ...prev, readme: decryptedReadme }));
+        setReadmeVisible(true);
+      } catch (error) {
+        setDecryptError('Failed to decrypt readme.');
+      }
+    } else {
+      // Need password - show password modal
+      setShowPasswordModal(true);
+    }
+  };
+
+  // Handle password submission to unlock and decrypt readme
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    const encryptedMasterKey = (session as { encryptedMasterKey?: string })?.encryptedMasterKey;
+    if (!encryptedMasterKey) {
+      setPasswordError('No encryption key found. Please log in again.');
+      return;
+    }
+
+    try {
+      const success = await unlockWithPassword(encryptedMasterKey, passwordInput);
+      if (success) {
+        // Now decrypt the readme
+        const decryptedReadme = await decryptField(rawEncryptedReadme);
+        setFormData(prev => ({ ...prev, readme: decryptedReadme }));
+        setReadmeVisible(true);
+        setShowPasswordModal(false);
+        setPasswordInput('');
+      } else {
+        setPasswordError('Incorrect password');
+      }
+    } catch (error) {
+      setPasswordError('Failed to decrypt. Please check your password.');
     }
   };
 
@@ -467,6 +553,9 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
             <MarkdownEditor
               value={formData.readme}
               onChange={(readme) => setFormData({ ...formData, readme })}
+              masked={!readmeVisible && (isReadmeEncrypted || !!rawEncryptedReadme)}
+              onToggleVisibility={handleToggleReadmeVisibility}
+              isEncrypted={isReadmeEncrypted}
             />
           </>
         )}
@@ -496,6 +585,60 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
                 {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Modal for README decryption */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[var(--surface)] rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl border border-[var(--border-color)]">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-[var(--primary)] fill-current">
+                  <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-[var(--foreground)]">Unlock README</h3>
+                <p className="text-[var(--text-muted)] text-sm">Enter your password to view encrypted content</p>
+              </div>
+            </div>
+
+            <form onSubmit={handlePasswordSubmit}>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full px-4 py-3 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--foreground)] rounded-lg focus:outline-none focus:border-[var(--primary)] mb-3"
+                autoFocus
+              />
+
+              {passwordError && (
+                <p className="text-red-500 text-sm mb-3">{passwordError}</p>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setPasswordInput('');
+                    setPasswordError('');
+                  }}
+                  className="px-4 py-2 text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[var(--primary)] text-white rounded-md font-medium hover:bg-[var(--primary-dark)] transition-colors"
+                >
+                  Unlock
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

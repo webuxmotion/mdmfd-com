@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useDroppable } from '@dnd-kit/core';
 import { useDesks } from '../context/DesksContext';
 import { Desk } from '../data/desks';
+import { mockFriends } from '../data/friendDesks';
 
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 500;
@@ -13,6 +14,7 @@ const DEFAULT_WIDTH = 280;
 
 interface SidebarProps {
   activeSlug?: string;
+  activeFriendUsername?: string;
 }
 
 interface DroppableDeskLinkProps {
@@ -46,14 +48,7 @@ function DroppableDeskLink({ desk, isActive }: DroppableDeskLinkProps) {
   );
 }
 
-// Mock friends data - will be replaced with real data later
-const mockFriends = [
-  { id: '1', username: 'nia.porter', fullName: 'Nia Porter', avatar: null, status: 'accepted' },
-  { id: '2', username: 'cash.rosario', fullName: 'Cash Rosario', avatar: null, status: 'accepted' },
-  { id: '3', username: 'gianni.maynard', fullName: 'Gianni Maynard', avatar: null, status: 'pending' },
-];
-
-export default function Sidebar({ activeSlug }: SidebarProps) {
+export default function Sidebar({ activeSlug, activeFriendUsername }: SidebarProps) {
   const pathname = usePathname();
   const { desks, addDesk } = useDesks();
   const [newDeskName, setNewDeskName] = useState('');
@@ -252,59 +247,56 @@ export default function Sidebar({ activeSlug }: SidebarProps) {
 
             {/* Friends List */}
             <div className="flex-1">
-              {filteredFriends.map((friend) => (
-                <div
-                  key={friend.id}
-                  className="relative flex items-center gap-3 px-4 py-2 hover:bg-[#ff8f00] transition-colors"
-                >
-                  {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {friend.avatar ? (
-                      <img src={friend.avatar} alt={friend.fullName} className="w-full h-full object-cover" />
-                    ) : (
-                      <svg viewBox="0 0 24 24" className="w-6 h-6 text-gray-500 fill-current">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-                      </svg>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white font-medium text-sm truncate">{friend.username}</div>
-                    <div className="text-white/70 text-xs truncate">{friend.fullName}</div>
-                  </div>
-
-                  {/* Status/Action */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setOpenFriendMenu(openFriendMenu === friend.id ? null : friend.id)}
-                      className="w-6 h-6 flex items-center justify-center text-white/70 hover:text-white"
+              {filteredFriends.map((friend) => {
+                const isActive = activeFriendUsername === friend.username;
+                return (
+                  <div key={friend.id} className="relative">
+                    <Link
+                      href={`/friends/${friend.username}`}
+                      className={`flex items-center gap-3 px-4 py-2 transition-colors ${
+                        isActive
+                          ? 'bg-[var(--sidebar-active)]'
+                          : 'hover:bg-[#ff8f00]'
+                      }`}
                     >
-                      {friend.status === 'accepted' ? (
-                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
-                          <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z" />
-                        </svg>
-                      )}
-                    </button>
-
-                    {/* Dropdown Menu */}
-                    {openFriendMenu === friend.id && (
-                      <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[100px]">
-                        <button
-                          onClick={() => setOpenFriendMenu(null)}
-                          className="w-full px-4 py-2 text-left text-[#ffa000] hover:bg-gray-100 transition-colors text-sm"
-                        >
-                          Cancel
-                        </button>
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {friend.avatar ? (
+                          <img src={friend.avatar} alt={friend.fullName} className="w-full h-full object-cover" />
+                        ) : (
+                          <svg viewBox="0 0 24 24" className="w-6 h-6 text-gray-500 fill-current">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                          </svg>
+                        )}
                       </div>
-                    )}
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white font-medium text-sm truncate">{friend.username}</div>
+                        <div className="text-white/70 text-xs truncate">{friend.fullName}</div>
+                      </div>
+
+                      {/* Status Icon */}
+                      <div className="w-6 h-6 flex items-center justify-center text-white/70">
+                        {friend.status === 'accepted' ? (
+                          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+                            <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z" />
+                          </svg>
+                        )}
+                      </div>
+
+                      {/* Active indicator arrow */}
+                      {isActive && (
+                        <span className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent border-r-[10px] border-r-[var(--background)]" />
+                      )}
+                    </Link>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}

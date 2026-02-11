@@ -75,10 +75,15 @@ export default function ItemCard({ item, deskSlug, deskId, isAddCard, isDragOver
   const { decryptField, isFieldEncrypted, isUnlocked } = useEncryption();
   const [decryptedTitle, setDecryptedTitle] = useState<string | null>(null);
 
+  // Decrypt title if it was previously encrypted (legacy data)
   useEffect(() => {
-    if (!item || isAddCard) return;
+    if (!item || isAddCard) {
+      setDecryptedTitle(null);
+      return;
+    }
 
     const decryptTitle = async () => {
+      // Check if title is encrypted (legacy data)
       if (isUnlocked && isFieldEncrypted(item.title)) {
         try {
           const decrypted = await decryptField(item.title);
@@ -130,7 +135,7 @@ export default function ItemCard({ item, deskSlug, deskId, isAddCard, isDragOver
           <img src={item.image} alt={displayTitle} className="w-full h-full object-cover absolute inset-0" />
         ) : (
           <span className="text-white font-semibold text-center text-sm leading-tight line-clamp-4">
-            {isFieldEncrypted(displayTitle) ? '••••' : displayTitle}
+            {displayTitle}
           </span>
         )}
       </div>
