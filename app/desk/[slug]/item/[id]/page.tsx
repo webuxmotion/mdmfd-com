@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../../../../components/Sidebar';
 import MarkdownEditor from '../../../../components/MarkdownEditor';
 import UserProfileButton from '../../../../components/UserProfileButton';
+import SetupEncryptionModal from '../../../../components/SetupEncryptionModal';
 import { useDesks } from '../../../../context/DesksContext';
 import { useEncryption } from '../../../../context/EncryptionContext';
 import { useSession } from 'next-auth/react';
@@ -61,6 +62,13 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
   const [isReadmeEncrypted, setIsReadmeEncrypted] = useState(false);
   const [rawEncryptedReadme, setRawEncryptedReadme] = useState<string>('');
 
+  // Encryption setup modal for OAuth users
+  const [showSetupEncryptionModal, setShowSetupEncryptionModal] = useState(false);
+  const [pendingSave, setPendingSave] = useState(false);
+
+  // Check if user needs encryption setup (OAuth user without encryption)
+  const needsEncryptionSetup = session?.user && !session.user.encryptedMasterKey;
+
   // Fetch fresh data from server when visiting the page
   useEffect(() => {
     const key = `${slug}-${id}`;
@@ -98,6 +106,8 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
   // Load item data - decrypt legacy encrypted titles, readme may be encrypted
   useEffect(() => {
     if (!item) return;
+    // Skip reloading if we have a pending save (e.g., during encryption setup)
+    if (pendingSave) return;
 
     const loadItem = async () => {
       setIsDecrypting(true);
@@ -150,7 +160,7 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     };
 
     loadItem();
-  }, [item, isUnlocked, decryptField, isFieldEncrypted]);
+  }, [item, isUnlocked, decryptField, isFieldEncrypted, pendingSave]);
 
   // Keyboard shortcut: Cmd+S or Ctrl+S to save
   useEffect(() => {
@@ -189,6 +199,13 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     if (!desk || !item) return;
 
     const handleSaveEvent = async () => {
+      // Check if user needs to setup encryption before saving readme
+      if (formData.readme && needsEncryptionSetup) {
+        setShowSetupEncryptionModal(true);
+        setPendingSave(true);
+        return;
+      }
+
       let readmeToSave = formData.readme;
 
       // Only encrypt README, title stays plain text
@@ -210,7 +227,7 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
 
     document.addEventListener('save-item', handleSaveEvent);
     return () => document.removeEventListener('save-item', handleSaveEvent);
-  }, [desk, item, id, formData, isUnlocked, encryptField, updateItem]);
+  }, [desk, item, id, formData, isUnlocked, encryptField, updateItem, needsEncryptionSetup]);
 
   if (!desk || !item) {
     return (
@@ -226,7 +243,14 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     );
   }
 
-  const saveItem = async () => {
+  const saveItem = async (skipEncryptionCheck = false) => {
+    // Check if user needs to setup encryption before saving readme
+    if (!skipEncryptionCheck && formData.readme && needsEncryptionSetup) {
+      setShowSetupEncryptionModal(true);
+      setPendingSave(true);
+      return;
+    }
+
     let readmeToSave = formData.readme;
 
     // Only encrypt README, title stays plain text
@@ -244,6 +268,16 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     });
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
+  };
+
+  // Handle encryption setup success - continue with save
+  const handleEncryptionSetupSuccess = () => {
+    setShowSetupEncryptionModal(false);
+    if (pendingSave) {
+      setPendingSave(false);
+      // Save with encryption now enabled (skipEncryptionCheck to avoid loop)
+      saveItem(true);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -549,6 +583,21 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
               </div>
             </form>
 
+            {/* Security Info */}
+            <div className="mb-1 flex items-start gap-2 text-sm text-[var(--text-muted)]">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 mt-0.5 flex-shrink-0 fill-current">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+              </svg>
+              <p>
+                <strong>End-to-end encrypted.</strong> Your README content is protected with AES-256 encryption.
+                {needsEncryptionSetup
+                  ? " You'll be asked to create an encryption password when saving."
+                  : !isUnlocked
+                    ? " Enter your password to unlock and save encrypted content."
+                    : " Your data is encrypted before being stored."}
+              </p>
+            </div>
+
             {/* Readme Editor */}
             <MarkdownEditor
               value={formData.readme}
@@ -588,6 +637,16 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
           </div>
         </div>
       )}
+
+      {/* Setup Encryption Modal for OAuth users */}
+      <SetupEncryptionModal
+        isOpen={showSetupEncryptionModal}
+        onClose={() => {
+          setShowSetupEncryptionModal(false);
+          setPendingSave(false);
+        }}
+        onSuccess={handleEncryptionSetupSuccess}
+      />
 
       {/* Password Modal for README decryption */}
       {showPasswordModal && (

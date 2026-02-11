@@ -180,7 +180,7 @@ export default function MarkdownEditor({ value, onChange, masked = false, onTogg
   // Masked view - show stars and a reveal button
   if (masked) {
     return (
-      <div className="mt-8">
+      <div className="mt-0">
         <div className="border border-[var(--border-color)] rounded-lg overflow-hidden bg-[var(--surface)]">
           {/* Header with toggle */}
           <div className="flex items-center justify-between p-3 border-b border-[var(--border-color)] bg-[var(--surface-hover)]">
@@ -222,7 +222,7 @@ export default function MarkdownEditor({ value, onChange, masked = false, onTogg
   }
 
   return (
-    <div className="mt-8">
+    <div className="mt-0">
       <div className="flex gap-4">
         {/* Editor */}
         <div className="flex-1 border border-[var(--border-color)] rounded-lg overflow-hidden bg-[var(--surface)]">
