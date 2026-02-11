@@ -133,11 +133,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt"
   },
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, account, trigger, session }) {
       if (user) {
         token.id = user.id
         token.username = user.username
         token.encryptedMasterKey = user.encryptedMasterKey
+
+        // For OAuth users (like Google), fetch encryptedMasterKey from database
+        if (account?.provider === "google" && user.email) {
+          const client = await clientPromise
+          const db = client.db("mdmfd")
+          const dbUser = await db.collection("users").findOne({ email: user.email })
+          if (dbUser?.encryptedMasterKey) {
+            token.encryptedMasterKey = dbUser.encryptedMasterKey
+          }
+          if (dbUser?.username) {
+            token.username = dbUser.username
+          }
+        }
       }
 
       if (trigger === "update" && session) {

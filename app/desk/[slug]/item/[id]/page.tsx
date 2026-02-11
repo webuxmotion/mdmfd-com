@@ -335,7 +335,7 @@ export default function ItemPage({ params }: { params: Promise<{ slug: string; i
     e.preventDefault();
     setPasswordError('');
 
-    const encryptedMasterKey = (session as { encryptedMasterKey?: string })?.encryptedMasterKey;
+    const encryptedMasterKey = (session?.user as { encryptedMasterKey?: string })?.encryptedMasterKey;
     if (!encryptedMasterKey) {
       setPasswordError('No encryption key found. Please log in again.');
       return;
